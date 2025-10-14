@@ -105,6 +105,13 @@ function bindEventListeners() {
             wrapper.style.display = this.checked ? 'block' : 'none';
             if (this.checked) {
                 updateCharts();
+                // 延迟滚动，等待图表渲染完成
+                setTimeout(() => {
+                    wrapper.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }, 150);
             }
         });
     });

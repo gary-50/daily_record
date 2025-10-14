@@ -553,22 +553,24 @@ button {
 }
 
 .records-table th {
-    background: linear-gradient(135deg, #f8f9fb 0%, #e8eaf6 100%);
-    color: #667eea;
+    background: white;
+    color: #2c3e50;
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.85em;
     letter-spacing: 0.5px;
-    border-bottom: 3px solid #667eea;
+    border-bottom: 2px solid #e8eaf6;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .records-table tbody tr {
-    transition: all 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 .records-table tbody tr:hover {
-    background: #f8f9fb;
-    transform: scale(1.01);
+    background: linear-gradient(135deg, #f8f9fb 0%, #fafaff 100%);
 }
 
 .records-table tbody tr:last-child td {
