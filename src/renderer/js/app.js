@@ -509,10 +509,22 @@ function groupDataByPeriod(filteredData) {
  */
 function updateStatCards(labels, groupedData) {
     const runDurationData = labels.map(label => groupedData[label].runDurationSeconds / 60); // 转换为分钟用于显示
-    const runDistanceData = labels.map(label => groupedData[label].runDistance);
-    const pushupsData = labels.map(label => groupedData[label].pushups);
-    const squatsData = labels.map(label => groupedData[label].squats);
-    const mountainClimbersData = labels.map(label => groupedData[label].mountainClimbers);
+    const runDistanceData = labels.map(label => {
+        // 如果跑步距离为0，返回null以忽略该数据点
+        return groupedData[label].runDistance > 0 ? groupedData[label].runDistance : null;
+    });
+    const pushupsData = labels.map(label => {
+        // 如果俯卧撑为0，返回null以忽略该数据点
+        return groupedData[label].pushups > 0 ? groupedData[label].pushups : null;
+    });
+    const squatsData = labels.map(label => {
+        // 如果深蹲为0，返回null以忽略该数据点
+        return groupedData[label].squats > 0 ? groupedData[label].squats : null;
+    });
+    const mountainClimbersData = labels.map(label => {
+        // 如果登山跑为0，返回null以忽略该数据点
+        return groupedData[label].mountainClimbers > 0 ? groupedData[label].mountainClimbers : null;
+    });
 
     // 计算每个时间段的配速（分钟/公里）
     const paceData = labels.map(label => {
@@ -524,10 +536,10 @@ function updateStatCards(labels, groupedData) {
     });
 
     const totalRunDurationSeconds = labels.reduce((sum, label) => sum + groupedData[label].runDurationSeconds, 0);
-    const totalRunDistance = runDistanceData.reduce((a, b) => a + b, 0);
-    const totalPushups = pushupsData.reduce((a, b) => a + b, 0);
-    const totalSquats = squatsData.reduce((a, b) => a + b, 0);
-    const totalMountainClimbers = mountainClimbersData.reduce((a, b) => a + b, 0);
+    const totalRunDistance = labels.reduce((sum, label) => sum + groupedData[label].runDistance, 0);
+    const totalPushups = labels.reduce((sum, label) => sum + groupedData[label].pushups, 0);
+    const totalSquats = labels.reduce((sum, label) => sum + groupedData[label].squats, 0);
+    const totalMountainClimbers = labels.reduce((sum, label) => sum + groupedData[label].mountainClimbers, 0);
 
     // 计算平均配速
     const avgPace = totalRunDistance > 0 ? calculatePace(totalRunDurationSeconds, totalRunDistance) : '-';
@@ -666,45 +678,49 @@ function drawChart(chartId, chartRef, labels, datasets, yAxisOptions = {}) {
 }
 
 /**
- * 绘制力量训练图表（深蹲、俯卧撑和登山跑）
+ * 绘制力量训练图表(深蹲、俯卧撑和登山跑)
  */
 function drawStrengthChart(labels, pushupsData, squatsData, mountainClimbersData) {
     strengthChart = drawChart('strengthChart', strengthChart, labels, [
         {
-            label: '俯卧撑（个）',
+            label: '俯卧撑(个)',
             data: pushupsData,
             borderColor: '#e74c3c',
             backgroundColor: 'rgba(231, 76, 60, 0.2)',
-            tension: 0.4
+            tension: 0.4,
+            spanGaps: true
         },
         {
-            label: '深蹲（个）',
+            label: '深蹲(个)',
             data: squatsData,
             borderColor: '#f39c12',
             backgroundColor: 'rgba(243, 156, 18, 0.2)',
-            tension: 0.4
+            tension: 0.4,
+            spanGaps: true
         },
         {
-            label: '登山跑（个）',
+            label: '登山跑(个)',
             data: mountainClimbersData,
             borderColor: '#9b59b6',
             backgroundColor: 'rgba(155, 89, 182, 0.2)',
-            tension: 0.4
+            tension: 0.4,
+            spanGaps: true
         }
     ]);
 }
 
 /**
- * 绘制跑步数据图表（仅跑步距离）
+ * 绘制跑步数据图表(仅跑步距离)
  */
 function drawRunningChart(labels, runDistanceData) {
     runningChart = drawChart('runningChart', runningChart, labels, [
         {
-            label: '跑步距离（公里）',
+            label: '跑步距离(公里)',
             data: runDistanceData,
             borderColor: '#2ecc71',
             backgroundColor: 'rgba(46, 204, 113, 0.2)',
-            tension: 0.4
+            tension: 0.4,
+            spanGaps: true
         }
     ]);
 }
