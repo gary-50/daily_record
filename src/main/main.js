@@ -1,9 +1,41 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// 数据文件路径
-const DATA_FILE = path.join(app.getPath('userData'), 'exercise-data.json');
+// 配置文件路径（用于存储用户设置）
+const CONFIG_FILE = path.join(app.getPath('userData'), 'config.json');
+
+// 默认数据文件路径
+let DATA_FILE = path.join(app.getPath('userData'), 'exercise-data.json');
+
+// 加载配置文件
+function loadConfig() {
+    try {
+        if (fs.existsSync(CONFIG_FILE)) {
+            const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+            if (config.dataFilePath && fs.existsSync(path.dirname(config.dataFilePath))) {
+                DATA_FILE = config.dataFilePath;
+            }
+        }
+    } catch (error) {
+        console.error('加载配置文件失败:', error);
+    }
+}
+
+// 保存配置文件
+function saveConfig(config) {
+    try {
+        const configDir = path.dirname(CONFIG_FILE);
+        if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+        }
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+        return true;
+    } catch (error) {
+        console.error('保存配置文件失败:', error);
+        return false;
+    }
+}
 
 // 确保数据文件存在
 function ensureDataFile() {
@@ -49,6 +81,7 @@ function createWindow() {
 
 // 应用准备就绪
 app.whenReady().then(() => {
+    loadConfig();  // 先加载配置
     ensureDataFile();
     createWindow();
 
@@ -122,4 +155,65 @@ ipcMain.handle('delete-record', async (event, id) => {
 // IPC 处理器 - 获取数据文件路径
 ipcMain.handle('get-data-path', async () => {
     return DATA_FILE;
+});
+
+// IPC 处理器 - 选择数据文件保存位置
+ipcMain.handle('choose-data-path', async () => {
+    const result = await dialog.showSaveDialog({
+        title: '选择数据文件保存位置',
+        defaultPath: DATA_FILE,
+        filters: [
+            { name: 'JSON 文件', extensions: ['json'] }
+        ],
+        properties: ['createDirectory', 'showOverwriteConfirmation']
+    });
+
+    if (!result.canceled && result.filePath) {
+        return result.filePath;
+    }
+    return null;
+});
+
+// IPC 处理器 - 设置数据文件路径
+ipcMain.handle('set-data-path', async (event, newPath) => {
+    try {
+        // 确保目标目录存在
+        const targetDir = path.dirname(newPath);
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        // 如果新路径不存在文件，复制当前数据到新位置
+        if (!fs.existsSync(newPath) && fs.existsSync(DATA_FILE)) {
+            fs.copyFileSync(DATA_FILE, newPath);
+        } else if (!fs.existsSync(newPath)) {
+            // 如果都不存在，创建新文件
+            fs.writeFileSync(newPath, JSON.stringify([]));
+        }
+
+        // 更新数据文件路径
+        const oldPath = DATA_FILE;
+        DATA_FILE = newPath;
+
+        // 保存配置
+        const success = saveConfig({ dataFilePath: newPath });
+
+        if (success) {
+            return { success: true, oldPath, newPath };
+        } else {
+            DATA_FILE = oldPath; // 回滚
+            return { success: false, error: '保存配置失败' };
+        }
+    } catch (error) {
+        console.error('设置数据文件路径失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC 处理器 - 获取当前配置
+ipcMain.handle('get-config', async () => {
+    return {
+        dataFilePath: DATA_FILE,
+        defaultPath: path.join(app.getPath('userData'), 'exercise-data.json')
+    };
 });

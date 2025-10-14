@@ -23,6 +23,9 @@ function initializeApp() {
 
     // 加载数据
     loadData();
+
+    // 加载设置
+    loadSettings();
 }
 
 /**
@@ -105,6 +108,12 @@ function bindEventListeners() {
             }
         });
     });
+
+    // 设置页面 - 更改数据存储位置按钮
+    const changeDataPathBtn = document.getElementById('changeDataPathBtn');
+    if (changeDataPathBtn) {
+        changeDataPathBtn.addEventListener('click', handleChangeDataPath);
+    }
 }
 
 /**
@@ -572,6 +581,53 @@ function updateCharts() {
 
     if (document.getElementById('showRunningChart').checked) {
         drawRunningChart(labels, datasets.runDistanceData);
+    }
+}
+
+/**
+ * 加载设置信息
+ */
+async function loadSettings() {
+    try {
+        const config = await window.electronAPI.getConfig();
+        const dataPathElement = document.getElementById('currentDataPath');
+        if (dataPathElement) {
+            dataPathElement.textContent = config.dataFilePath || '加载失败';
+        }
+    } catch (error) {
+        console.error('加载设置错误:', error);
+    }
+}
+
+/**
+ * 处理更改数据存储位置
+ */
+async function handleChangeDataPath() {
+    try {
+        // 打开文件选择对话框
+        const newPath = await window.electronAPI.chooseDataPath();
+
+        if (!newPath) {
+            return; // 用户取消了选择
+        }
+
+        // 设置新的数据文件路径
+        const result = await window.electronAPI.setDataPath(newPath);
+
+        if (result.success) {
+            alert(`数据存储位置已更新！\n\n新路径：${result.newPath}\n\n数据已从旧位置复制到新位置。`);
+
+            // 更新显示的路径
+            document.getElementById('currentDataPath').textContent = result.newPath;
+
+            // 重新加载数据
+            await loadData();
+        } else {
+            throw new Error(result.error || '更新路径失败');
+        }
+    } catch (error) {
+        console.error('更改数据存储位置错误:', error);
+        alert('更改数据存储位置失败：' + error.message);
     }
 }
 

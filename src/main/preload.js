@@ -12,5 +12,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteRecord: (id) => ipcRenderer.invoke('delete-record', id),
 
     // 获取数据文件路径
-    getDataPath: () => ipcRenderer.invoke('get-data-path')
+    getDataPath: () => ipcRenderer.invoke('get-data-path'),
+
+    // 选择数据文件保存位置
+    chooseDataPath: () => ipcRenderer.invoke('choose-data-path'),
+
+    // 设置数据文件路径
+    setDataPath: (newPath) => ipcRenderer.invoke('set-data-path', newPath),
+
+    // 获取当前配置
+    getConfig: () => ipcRenderer.invoke('get-config')
 });
