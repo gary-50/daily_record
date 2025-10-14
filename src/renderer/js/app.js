@@ -175,26 +175,38 @@ function calculatePace(durationSeconds, distanceKm) {
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    const durationInput = document.getElementById('runDuration').value;
-    const durationSeconds = timeToSeconds(durationInput);
+    // 获取表单和提交按钮
+    const form = e.target;
+    const submitButton = form.querySelector('button[type="submit"]');
 
-    const record = {
-        date: document.getElementById('date').value,
-        runTime: document.getElementById('runTime').value || '',
-        runDurationSeconds: durationSeconds,
-        runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
-        pushups: parseInt(document.getElementById('pushups').value) || 0,
-        squats: parseInt(document.getElementById('squats').value) || 0,
-        mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
-        feeling: document.getElementById('feeling').value
-    };
+    // 禁用表单防止重复提交
+    const formElements = form.querySelectorAll('input, textarea, button');
+    formElements.forEach(el => el.disabled = true);
+
+    // 保存按钮原始文本
+    const originalButtonText = submitButton.innerHTML;
+    submitButton.innerHTML = '<span>保存中...</span>';
 
     try {
+        const durationInput = document.getElementById('runDuration').value;
+        const durationSeconds = timeToSeconds(durationInput);
+
+        const record = {
+            date: document.getElementById('date').value,
+            runTime: document.getElementById('runTime').value || '',
+            runDurationSeconds: durationSeconds,
+            runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
+            pushups: parseInt(document.getElementById('pushups').value) || 0,
+            squats: parseInt(document.getElementById('squats').value) || 0,
+            mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
+            feeling: document.getElementById('feeling').value
+        };
+
         const result = await window.electronAPI.saveRecord(record);
 
         if (result.success) {
             await loadData();
-            e.target.reset();
+            form.reset();
             document.getElementById('date').valueAsDate = new Date();
             alert('记录已保存！');
         } else {
@@ -203,6 +215,10 @@ async function handleFormSubmit(e) {
     } catch (error) {
         console.error('保存数据错误:', error);
         alert('保存失败：' + error.message);
+    } finally {
+        // 恢复表单元素状态
+        formElements.forEach(el => el.disabled = false);
+        submitButton.innerHTML = originalButtonText;
     }
 }
 

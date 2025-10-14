@@ -503,7 +503,6 @@ button {
 /* 图表容器 */
 .chart-wrapper {
     position: relative;
-    height: 450px;
     margin-top: 32px;
     background: white;
     padding: 24px;
@@ -511,6 +510,11 @@ button {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
     border: 2px solid #e8eaf6;
     transition: all 0.3s ease;
+}
+
+.chart-wrapper canvas {
+    max-height: 400px;
+    height: 400px !important;
 }
 
 .chart-wrapper:hover {
