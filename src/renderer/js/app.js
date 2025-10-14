@@ -128,7 +128,7 @@ async function loadData() {
         }
     } catch (error) {
         console.error('加载数据错误:', error);
-        alert('加载数据失败');
+        showToast('加载数据失败', 'error');
     }
 }
 
@@ -159,6 +159,133 @@ function secondsToTime(totalSeconds) {
 }
 
 /**
+ * 显示 Toast 提示
+ * @param {string} message - 提示消息
+ * @param {string} type - 提示类型: 'success', 'error', 'info'
+ */
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+
+    // 创建 toast 元素
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    // 根据类型选择图标
+    let iconSvg = '';
+    if (type === 'success') {
+        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    } else if (type === 'error') {
+        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>';
+    } else {
+        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+
+    toast.innerHTML = `
+        ${iconSvg}
+        <div class="toast-message">${message}</div>
+        <button class="toast-close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/>
+            </svg>
+        </button>
+    `;
+
+    // 添加关闭按钮事件
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.onclick = () => {
+        toast.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    // 添加到容器
+    container.appendChild(toast);
+
+    // 3秒后自动移除
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 3000);
+}
+
+/**
+ * 显示确认对话框（非阻塞）
+ * @param {string} message - 确认消息
+ * @param {string} title - 对话框标题
+ * @returns {Promise<boolean>} - 返回用户的选择
+ */
+function showConfirm(message, title = '确认操作') {
+    return new Promise((resolve) => {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+
+        // 创建对话框
+        const dialog = document.createElement('div');
+        dialog.className = 'confirm-dialog';
+
+        dialog.innerHTML = `
+            <div class="confirm-header">
+                <h3>
+                    <svg class="confirm-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                    ${title}
+                </h3>
+            </div>
+            <div class="confirm-body">
+                <p>${message}</p>
+            </div>
+            <div class="confirm-footer">
+                <button class="confirm-btn confirm-btn-cancel" data-action="cancel">
+                    <svg class="confirm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/>
+                    </svg>
+                    取消
+                </button>
+                <button class="confirm-btn confirm-btn-confirm" data-action="confirm">
+                    <svg class="confirm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    确定
+                </button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // 阻止对话框点击冒泡
+        dialog.onclick = (e) => e.stopPropagation();
+
+        // 处理按钮点击
+        const handleClick = (confirmed) => {
+            overlay.style.animation = 'fadeOut 0.2s ease';
+            setTimeout(() => {
+                overlay.remove();
+                resolve(confirmed);
+            }, 200);
+        };
+
+        // 绑定按钮事件
+        dialog.querySelector('[data-action="cancel"]').onclick = () => handleClick(false);
+        dialog.querySelector('[data-action="confirm"]').onclick = () => handleClick(true);
+
+        // 点击遮罩层关闭
+        overlay.onclick = () => handleClick(false);
+
+        // ESC 键关闭
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                handleClick(false);
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    });
+}
+
+/**
  * 计算配速（分钟/公里）
  */
 function calculatePace(durationSeconds, distanceKm) {
@@ -179,45 +306,50 @@ async function handleFormSubmit(e) {
     const form = e.target;
     const submitButton = form.querySelector('button[type="submit"]');
 
-    // 禁用表单防止重复提交
-    const formElements = form.querySelectorAll('input, textarea, button');
-    formElements.forEach(el => el.disabled = true);
+    // 禁用提交按钮防止重复提交
+    submitButton.disabled = true;
 
     // 保存按钮原始文本
     const originalButtonText = submitButton.innerHTML;
     submitButton.innerHTML = '<span>保存中...</span>';
 
+    const durationInput = document.getElementById('runDuration').value;
+    const durationSeconds = timeToSeconds(durationInput);
+
+    const record = {
+        date: document.getElementById('date').value,
+        runTime: document.getElementById('runTime').value || '',
+        runDurationSeconds: durationSeconds,
+        runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
+        pushups: parseInt(document.getElementById('pushups').value) || 0,
+        squats: parseInt(document.getElementById('squats').value) || 0,
+        mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
+        feeling: document.getElementById('feeling').value
+    };
+
     try {
-        const durationInput = document.getElementById('runDuration').value;
-        const durationSeconds = timeToSeconds(durationInput);
-
-        const record = {
-            date: document.getElementById('date').value,
-            runTime: document.getElementById('runTime').value || '',
-            runDurationSeconds: durationSeconds,
-            runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
-            pushups: parseInt(document.getElementById('pushups').value) || 0,
-            squats: parseInt(document.getElementById('squats').value) || 0,
-            mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
-            feeling: document.getElementById('feeling').value
-        };
-
         const result = await window.electronAPI.saveRecord(record);
 
         if (result.success) {
             await loadData();
+
+            // 清空表单
             form.reset();
             document.getElementById('date').valueAsDate = new Date();
-            alert('记录已保存！');
+
+            // 使用 Toast 提示代替 alert
+            showToast('记录已保存！', 'success');
         } else {
             throw new Error(result.error || '保存失败');
         }
     } catch (error) {
         console.error('保存数据错误:', error);
-        alert('保存失败：' + error.message);
+
+        // 使用 Toast 提示代替 alert
+        showToast('保存失败：' + error.message, 'error');
     } finally {
-        // 恢复表单元素状态
-        formElements.forEach(el => el.disabled = false);
+        // 恢复按钮状态
+        submitButton.disabled = false;
         submitButton.innerHTML = originalButtonText;
     }
 }
@@ -300,18 +432,21 @@ function showFeelingModal(encodedFeeling) {
  * 删除记录
  */
 async function deleteRecord(id) {
-    if (confirm('确定要删除这条记录吗？')) {
+    const confirmed = await showConfirm('确定要删除这条记录吗？', '删除确认');
+
+    if (confirmed) {
         try {
             const result = await window.electronAPI.deleteRecord(id);
 
             if (result.success) {
                 await loadData();
+                showToast('删除成功', 'success');
             } else {
                 throw new Error(result.error || '删除失败');
             }
         } catch (error) {
             console.error('删除数据错误:', error);
-            alert('删除失败：' + error.message);
+            showToast('删除失败：' + error.message, 'error');
         }
     }
 }
@@ -631,7 +766,7 @@ async function handleChangeDataPath() {
         const result = await window.electronAPI.setDataPath(newPath);
 
         if (result.success) {
-            alert(`数据存储位置已更新！\n\n新路径：${result.newPath}\n\n数据已从旧位置复制到新位置。`);
+            showToast(`数据存储位置已更新！\n\n新路径：${result.newPath}\n\n数据已从旧位置复制到新位置。`, 'success');
 
             // 更新显示的路径
             document.getElementById('currentDataPath').textContent = result.newPath;
@@ -643,7 +778,7 @@ async function handleChangeDataPath() {
         }
     } catch (error) {
         console.error('更改数据存储位置错误:', error);
-        alert('更改数据存储位置失败：' + error.message);
+        showToast('更改数据存储位置失败：' + error.message, 'error');
     }
 }
 
