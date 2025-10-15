@@ -441,89 +441,90 @@ button {
     font-weight: 600;
 }
 
-.checkbox-group {
+.chart-button-group {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
 }
 
-.checkbox-label {
+.chart-option-btn {
     display: flex;
     align-items: center;
     gap: 12px;
-    cursor: pointer;
     padding: 16px 20px;
     background: white;
     border: 2px solid #e0e6ed;
     border-radius: 12px;
+    cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    color: #34495e;
 }
 
-.checkbox-label::before {
+.chart-option-btn::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     width: 4px;
     height: 100%;
-    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-gradient);
     transform: scaleY(0);
     transition: transform 0.3s ease;
 }
 
-.checkbox-label:hover {
-    border-color: #667eea;
+.chart-option-btn:hover {
+    border-color: var(--primary-color);
     background: linear-gradient(135deg, #f5f7ff 0%, #ffffff 100%);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
-.checkbox-label:hover::before {
+.chart-option-btn:hover::before {
     transform: scaleY(1);
 }
 
-.chart-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: #667eea;
-    flex-shrink: 0;
+.chart-option-btn.active {
+    background: var(--primary-gradient-reverse);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
 }
 
-.checkbox-text {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 15px;
-    color: #34495e;
-    font-weight: 500;
+.chart-option-btn.active::before {
+    transform: scaleY(1);
+    background: white;
 }
 
-.checkbox-icon {
-    width: 20px;
-    height: 20px;
-    stroke: #667eea;
-    fill: none;
+.chart-option-icon {
+    width: 22px;
+    height: 22px;
+    stroke: var(--primary-color);
+    fill: var(--primary-color);
     stroke-width: 2;
     flex-shrink: 0;
+    transition: all 0.3s ease;
 }
 
-/* 当复选框选中时的样式 */
-.chart-checkbox:checked + .checkbox-text {
-    color: #667eea;
-    font-weight: 600;
+.chart-option-icon.icon-stroke-only {
+    fill: none;
 }
 
-.checkbox-label:has(.chart-checkbox:checked) {
-    background: linear-gradient(135deg, #f0f2ff 0%, #ffffff 100%);
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+.chart-option-btn.active .chart-option-icon {
+    stroke: white;
+    fill: white;
 }
 
-.checkbox-label:has(.chart-checkbox:checked)::before {
-    transform: scaleY(1);
+.chart-option-btn.active .chart-option-icon.icon-stroke-only {
+    fill: none;
+}
+
+.chart-option-btn span {
+    flex: 1;
 }
 
 /* 统计卡片网格 */
@@ -1597,24 +1598,7 @@ button {
     color: var(--primary-color);
 }
 
-[data-theme="dark"] .checkbox-label {
-    background: var(--bg-secondary);
-    border-color: var(--border-color);
-}
 
-[data-theme="dark"] .checkbox-label:hover {
-    border-color: var(--primary-color);
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-white) 100%);
-}
-
-[data-theme="dark"] .checkbox-text {
-    color: var(--text-primary);
-}
-
-[data-theme="dark"] .checkbox-label:has(.chart-checkbox:checked) {
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-white) 100%);
-    border-color: var(--primary-color);
-}
 
 [data-theme="dark"] .settings-value {
     color: var(--primary-color);
@@ -1650,8 +1634,159 @@ button {
     stroke: var(--primary-color);
 }
 
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    background: #1e1f20;
+    border-color: #3a3b3c;
+    color: var(--text-primary);
+}
+
 [data-theme="dark"] input:focus,
 [data-theme="dark"] textarea:focus,
 [data-theme="dark"] select:focus {
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    background: #242526;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: #8a8d91;
+}
+
+[data-theme="dark"] .search-input {
+    background: #1e1f20;
+    border-color: #3a3b3c;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .search-input:focus {
+    background: #242526;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+[data-theme="dark"] .btn-secondary {
+    background: #242526;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+[data-theme="dark"] .content-card {
+    background: #242526;
+}
+
+[data-theme="dark"] .stat-card {
+    background: #242526;
+    border-color: #3a3b3c;
+}
+
+[data-theme="dark"] .chart-wrapper {
+    background: #242526;
+    border-color: #3a3b3c;
+}
+
+[data-theme="dark"] .heatmap-container {
+    background: #242526;
+    border-color: #3a3b3c;
+}
+
+[data-theme="dark"] .table-container {
+    background: #242526;
+}
+
+[data-theme="dark"] .records-table {
+    background: #242526;
+}
+
+[data-theme="dark"] .records-table th {
+    background: #1e1f20;
+    color: var(--text-primary);
+    border-bottom-color: #3a3b3c;
+}
+
+[data-theme="dark"] .records-table td {
+    border-bottom-color: #3a3b3c;
+}
+
+[data-theme="dark"] .records-table tbody tr:hover {
+    background: #2a2b2c;
+}
+
+[data-theme="dark"] .tab-btn {
+    background: #1e1f20;
+    color: var(--text-secondary);
+    border-color: #3a3b3c;
+}
+
+[data-theme="dark"] .tab-btn:hover {
+    background: #242526;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .tab-btn.active {
+    background: var(--primary-gradient-reverse);
+    color: white;
+}
+
+[data-theme="dark"] .delete-btn {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+
+[data-theme="dark"] .delete-btn:hover {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+[data-theme="dark"] .modal-overlay {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] .settings-item {
+    background: #242526;
+    border-color: #3a3b3c;
+}
+
+[data-theme="dark"] .settings-item:hover {
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .chart-option-btn {
+    background: #242526;
+    border-color: #3a3b3c;
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .chart-option-btn:hover {
+    background: #2a2b2c;
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .chart-option-btn.active {
+    background: var(--primary-gradient-reverse);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+[data-theme="dark"] .chart-option-icon {
+    stroke: var(--primary-color);
+    fill: var(--primary-color);
+}
+
+[data-theme="dark"] .chart-option-icon.icon-stroke-only {
+    fill: none;
+}
+
+[data-theme="dark"] .chart-option-btn.active .chart-option-icon {
+    stroke: white;
+    fill: white;
+}
+
+[data-theme="dark"] .chart-option-btn.active .chart-option-icon.icon-stroke-only {
+    fill: none;
 }

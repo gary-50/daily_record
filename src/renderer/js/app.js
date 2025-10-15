@@ -46,11 +46,10 @@ function cacheDOMElements() {
         running: document.getElementById('runningChartWrapper')
     };
     
-    DOM.chartCheckboxes = {
-        pace: document.getElementById('showPaceChart'),
-        strength: document.getElementById('showStrengthChart'),
-        running: document.getElementById('showRunningChart')
-    };
+    // 初始化：只显示配速图表
+    DOM.chartWrappers.pace.style.display = 'block';
+    DOM.chartWrappers.strength.style.display = 'none';
+    DOM.chartWrappers.running.style.display = 'none';
 }
 
 function initializeApp() {
@@ -132,11 +131,26 @@ function bindEventListeners() {
         });
     });
 
-    Object.keys(DOM.chartCheckboxes).forEach(key => {
-        DOM.chartCheckboxes[key].addEventListener('change', function() {
-            const wrapper = DOM.chartWrappers[key];
-            wrapper.style.display = this.checked ? 'block' : 'none';
-            if (this.checked) {
+    // 图表选择按钮事件
+    document.querySelectorAll('.chart-option-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const chartType = this.dataset.chart;
+            
+            // 移除所有按钮的 active 类
+            document.querySelectorAll('.chart-option-btn').forEach(b => b.classList.remove('active'));
+            
+            // 添加当前按钮的 active 类
+            this.classList.add('active');
+            
+            // 隐藏所有图表
+            Object.values(DOM.chartWrappers).forEach(wrapper => {
+                wrapper.style.display = 'none';
+            });
+            
+            // 显示选中的图表
+            const wrapper = DOM.chartWrappers[chartType];
+            if (wrapper) {
+                wrapper.style.display = 'block';
                 updateCharts();
                 setTimeout(() => {
                     wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -728,15 +742,15 @@ function updateCharts() {
     const labels = Object.keys(groupedData).sort();
     const datasets = updateStatCards(labels, groupedData);
 
-    if (DOM.chartCheckboxes.pace.checked) {
+    if (DOM.chartWrappers.pace.style.display !== 'none') {
         drawPaceChart(labels, datasets.paceData);
     }
 
-    if (DOM.chartCheckboxes.strength.checked) {
+    if (DOM.chartWrappers.strength.style.display !== 'none') {
         drawStrengthChart(labels, datasets.pushupsData, datasets.squatsData, datasets.mountainClimbersData);
     }
 
-    if (DOM.chartCheckboxes.running.checked) {
+    if (DOM.chartWrappers.running.style.display !== 'none') {
         drawRunningChart(labels, datasets.runDistanceData);
     }
 }
