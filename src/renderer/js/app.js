@@ -1,83 +1,87 @@
-// 全局变量
+const CONSTANTS = {
+    CHART_SCROLL_DELAY: 150,
+    TOAST_DURATION: 3000,
+    TOAST_FADE_OUT: 2700,
+    DEFAULT_DATE_RANGE: 30
+};
+
 let exerciseData = [];
-let paceChart = null;
-let strengthChart = null;
-let runningChart = null;
+const charts = {
+    pace: null,
+    strength: null,
+    running: null
+};
 let currentTab = 'daily';
 let currentChartType = 'line';
 let currentPage = 'record';
 
-/**
- * 初始化应用
- */
+const DOM = {};
+
+function cacheDOMElements() {
+    DOM.date = document.getElementById('date');
+    DOM.endDate = document.getElementById('endDate');
+    DOM.startDate = document.getElementById('startDate');
+    DOM.exerciseForm = document.getElementById('exerciseForm');
+    DOM.recordsBody = document.getElementById('recordsBody');
+    DOM.statsGrid = document.getElementById('statsGrid');
+    DOM.toastContainer = document.getElementById('toastContainer');
+    DOM.currentDataPath = document.getElementById('currentDataPath');
+    DOM.changeDataPathBtn = document.getElementById('changeDataPathBtn');
+    
+    DOM.chartWrappers = {
+        pace: document.getElementById('paceChartWrapper'),
+        strength: document.getElementById('strengthChartWrapper'),
+        running: document.getElementById('runningChartWrapper')
+    };
+    
+    DOM.chartCheckboxes = {
+        pace: document.getElementById('showPaceChart'),
+        strength: document.getElementById('showStrengthChart'),
+        running: document.getElementById('showRunningChart')
+    };
+}
+
 function initializeApp() {
-    // 初始化日期
-    document.getElementById('date').valueAsDate = new Date();
-    document.getElementById('endDate').valueAsDate = new Date();
+    cacheDOMElements();
+    
+    const today = new Date();
+    DOM.date.valueAsDate = today;
+    DOM.endDate.valueAsDate = today;
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    document.getElementById('startDate').valueAsDate = startDate;
+    startDate.setDate(startDate.getDate() - CONSTANTS.DEFAULT_DATE_RANGE);
+    DOM.startDate.valueAsDate = startDate;
 
-    // 绑定事件监听器
     bindEventListeners();
-
-    // 加载数据
     loadData();
-
-    // 加载设置
     loadSettings();
 }
 
-/**
- * 页面切换功能
- */
 function switchPage(pageName) {
-    // 移除所有页面的active类
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
-    // 移除所有导航项的active类
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-
-    // 激活当前页面
     const targetPage = document.getElementById(pageName + 'Page');
-    if (targetPage) {
-        targetPage.classList.add('active');
-    }
-
-    // 激活当前导航项
     const targetNav = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-    if (targetNav) {
-        targetNav.classList.add('active');
-    }
+    
+    if (targetPage) targetPage.classList.add('active');
+    if (targetNav) targetNav.classList.add('active');
 
     currentPage = pageName;
 
-    // 如果切换到统计页面，更新图表
     if (pageName === 'stats') {
-        setTimeout(() => updateCharts(), 100);
+        setTimeout(updateCharts, 100);
     }
 }
 
-/**
- * 绑定所有事件监听器
- */
 function bindEventListeners() {
-    // 表单提交事件
-    document.getElementById('exerciseForm').addEventListener('submit', handleFormSubmit);
+    DOM.exerciseForm.addEventListener('submit', handleFormSubmit);
 
-    // 导航菜单点击事件
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function() {
-            const pageName = this.dataset.page;
-            switchPage(pageName);
+            switchPage(this.dataset.page);
         });
     });
 
-    // Tab切换事件
     document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
@@ -87,7 +91,6 @@ function bindEventListeners() {
         });
     });
 
-    // 图表类型切换事件
     document.querySelectorAll('.tab-btn[data-chart]').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.tab-btn[data-chart]').forEach(b => b.classList.remove('active'));
@@ -97,35 +100,24 @@ function bindEventListeners() {
         });
     });
 
-    // 图表复选框事件（统一处理）
-    ['showPaceChart', 'showStrengthChart', 'showRunningChart'].forEach(id => {
-        document.getElementById(id).addEventListener('change', function() {
-            const wrapperId = id.replace('show', '').replace('Chart', 'ChartWrapper');
-            const wrapper = document.getElementById(wrapperId.charAt(0).toLowerCase() + wrapperId.slice(1));
+    Object.keys(DOM.chartCheckboxes).forEach(key => {
+        DOM.chartCheckboxes[key].addEventListener('change', function() {
+            const wrapper = DOM.chartWrappers[key];
             wrapper.style.display = this.checked ? 'block' : 'none';
             if (this.checked) {
                 updateCharts();
-                // 延迟滚动，等待图表渲染完成
                 setTimeout(() => {
-                    wrapper.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }, 150);
+                    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, CONSTANTS.CHART_SCROLL_DELAY);
             }
         });
     });
 
-    // 设置页面 - 更改数据存储位置按钮
-    const changeDataPathBtn = document.getElementById('changeDataPathBtn');
-    if (changeDataPathBtn) {
-        changeDataPathBtn.addEventListener('click', handleChangeDataPath);
+    if (DOM.changeDataPathBtn) {
+        DOM.changeDataPathBtn.addEventListener('click', handleChangeDataPath);
     }
 }
 
-/**
- * 从Electron主进程加载数据
- */
 async function loadData() {
     try {
         exerciseData = await window.electronAPI.getRecords();
@@ -139,56 +131,35 @@ async function loadData() {
     }
 }
 
-/**
- * 将时:分:秒格式转换为总秒数
- */
 function timeToSeconds(timeStr) {
     if (!timeStr || timeStr.trim() === '') return 0;
     const parts = timeStr.split(':');
     if (parts.length === 3) {
-        const hours = parseInt(parts[0]) || 0;
-        const minutes = parseInt(parts[1]) || 0;
-        const seconds = parseInt(parts[2]) || 0;
+        const [hours, minutes, seconds] = parts.map(p => parseInt(p) || 0);
         return hours * 3600 + minutes * 60 + seconds;
     }
     return 0;
 }
 
-/**
- * 将总秒数转换为时:分:秒格式
- */
 function secondsToTime(totalSeconds) {
     if (!totalSeconds || totalSeconds === 0) return '-';
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-/**
- * 显示 Toast 提示
- * @param {string} message - 提示消息
- * @param {string} type - 提示类型: 'success', 'error', 'info'
- */
 function showToast(message, type = 'success') {
-    const container = document.getElementById('toastContainer');
+    const iconMap = {
+        success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>',
+        info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    };
 
-    // 创建 toast 元素
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-
-    // 根据类型选择图标
-    let iconSvg = '';
-    if (type === 'success') {
-        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    } else if (type === 'error') {
-        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>';
-    } else {
-        iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-    }
-
     toast.innerHTML = `
-        ${iconSvg}
+        ${iconMap[type]}
         <div class="toast-message">${message}</div>
         <button class="toast-close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -197,22 +168,16 @@ function showToast(message, type = 'success') {
         </button>
     `;
 
-    // 添加关闭按钮事件
-    const closeBtn = toast.querySelector('.toast-close');
-    closeBtn.onclick = () => {
+    toast.querySelector('.toast-close').onclick = () => {
         toast.style.animation = 'fadeOut 0.3s ease';
         setTimeout(() => toast.remove(), 300);
     };
 
-    // 添加到容器
-    container.appendChild(toast);
+    DOM.toastContainer.appendChild(toast);
 
-    // 3秒后自动移除
     setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, 3000);
+        if (toast.parentElement) toast.remove();
+    }, CONSTANTS.TOAST_DURATION);
 }
 
 /**
@@ -292,41 +257,26 @@ function showConfirm(message, title = '确认操作') {
     });
 }
 
-/**
- * 计算配速（分钟/公里）
- */
 function calculatePace(durationSeconds, distanceKm) {
     if (!durationSeconds || !distanceKm || distanceKm === 0) return '-';
     const paceSeconds = durationSeconds / distanceKm;
     const paceMinutes = Math.floor(paceSeconds / 60);
     const paceSecondsRemainder = Math.floor(paceSeconds % 60);
-    return `${paceMinutes}'${paceSecondsRemainder.toString().padStart(2, '0')}"`;
+    return `${paceMinutes}'${String(paceSecondsRemainder).padStart(2, '0')}"`;
 }
 
-/**
- * 处理表单提交
- */
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    // 获取表单和提交按钮
-    const form = e.target;
-    const submitButton = form.querySelector('button[type="submit"]');
-
-    // 禁用提交按钮防止重复提交
+    const submitButton = e.target.querySelector('button[type="submit"]');
     submitButton.disabled = true;
-
-    // 保存按钮原始文本
     const originalButtonText = submitButton.innerHTML;
     submitButton.innerHTML = '<span>保存中...</span>';
 
-    const durationInput = document.getElementById('runDuration').value;
-    const durationSeconds = timeToSeconds(durationInput);
-
     const record = {
-        date: document.getElementById('date').value,
+        date: DOM.date.value,
         runTime: document.getElementById('runTime').value || '',
-        runDurationSeconds: durationSeconds,
+        runDurationSeconds: timeToSeconds(document.getElementById('runDuration').value),
         runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
         pushups: parseInt(document.getElementById('pushups').value) || 0,
         squats: parseInt(document.getElementById('squats').value) || 0,
@@ -339,52 +289,34 @@ async function handleFormSubmit(e) {
 
         if (result.success) {
             await loadData();
-
-            // 清空表单
-            form.reset();
-            document.getElementById('date').valueAsDate = new Date();
-
-            // 使用 Toast 提示代替 alert
+            e.target.reset();
+            DOM.date.valueAsDate = new Date();
             showToast('记录已保存！', 'success');
         } else {
             throw new Error(result.error || '保存失败');
         }
     } catch (error) {
         console.error('保存数据错误:', error);
-
-        // 使用 Toast 提示代替 alert
         showToast('保存失败：' + error.message, 'error');
     } finally {
-        // 恢复按钮状态
         submitButton.disabled = false;
         submitButton.innerHTML = originalButtonText;
     }
 }
 
-/**
- * 显示历史记录
- */
 function displayRecords() {
-    const tbody = document.getElementById('recordsBody');
-    tbody.innerHTML = '';
+    DOM.recordsBody.innerHTML = '';
 
-    // 按日期降序排序
-    const sortedData = [...exerciseData].sort((a, b) => {
-        return new Date(b.date) - new Date(a.date);
-    });
+    const sortedData = [...exerciseData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     sortedData.forEach(record => {
-        // 兼容旧数据格式（runDuration为分钟）和新数据格式（runDurationSeconds为秒）
         const durationSeconds = record.runDurationSeconds || (record.runDuration ? record.runDuration * 60 : 0);
         const durationDisplay = secondsToTime(durationSeconds);
         const pace = calculatePace(durationSeconds, record.runDistance);
-
-        const tr = document.createElement('tr');
-
-        // 处理体感记录的显示
         const feeling = record.feeling || '-';
         const feelingDisplay = feeling === '-' ? '-' : `<span class="feeling-preview" onclick="showFeelingModal('${encodeURIComponent(feeling)}')">${feeling}</span>`;
 
+        const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${record.date}</td>
             <td>${record.runTime || '-'}</td>
@@ -397,7 +329,7 @@ function displayRecords() {
             <td class="feeling-cell">${feelingDisplay}</td>
             <td><button class="delete-btn" onclick="deleteRecord(${record.id})">删除</button></td>
         `;
-        tbody.appendChild(tr);
+        DOM.recordsBody.appendChild(tr);
     });
 }
 
@@ -504,53 +436,44 @@ function groupDataByPeriod(filteredData) {
     return groupedData;
 }
 
-/**
- * 更新统计卡片
- */
 function updateStatCards(labels, groupedData) {
-    const runDurationData = labels.map(label => groupedData[label].runDurationSeconds / 60); // 转换为分钟用于显示
-    const runDistanceData = labels.map(label => {
-        // 如果跑步距离为0，返回null以忽略该数据点
-        return groupedData[label].runDistance > 0 ? groupedData[label].runDistance : null;
-    });
-    const pushupsData = labels.map(label => {
-        // 如果俯卧撑为0，返回null以忽略该数据点
-        return groupedData[label].pushups > 0 ? groupedData[label].pushups : null;
-    });
-    const squatsData = labels.map(label => {
-        // 如果深蹲为0，返回null以忽略该数据点
-        return groupedData[label].squats > 0 ? groupedData[label].squats : null;
-    });
-    const mountainClimbersData = labels.map(label => {
-        // 如果登山跑为0，返回null以忽略该数据点
-        return groupedData[label].mountainClimbers > 0 ? groupedData[label].mountainClimbers : null;
-    });
+    const dataMapper = (field, checkZero = false) => 
+        labels.map(label => {
+            const value = groupedData[label][field];
+            return checkZero && value === 0 ? null : value;
+        });
 
-    // 计算每个时间段的配速（分钟/公里）
+    const runDistanceData = dataMapper('runDistance', true);
+    const pushupsData = dataMapper('pushups', true);
+    const squatsData = dataMapper('squats', true);
+    const mountainClimbersData = dataMapper('mountainClimbers', true);
+
     const paceData = labels.map(label => {
         const data = groupedData[label];
-        if (data.runDurationSeconds > 0 && data.runDistance > 0) {
-            return data.runDurationSeconds / 60 / data.runDistance;
-        }
-        return null;
+        return (data.runDurationSeconds > 0 && data.runDistance > 0) 
+            ? data.runDurationSeconds / 60 / data.runDistance 
+            : null;
     });
 
-    const totalRunDurationSeconds = labels.reduce((sum, label) => sum + groupedData[label].runDurationSeconds, 0);
-    const totalRunDistance = labels.reduce((sum, label) => sum + groupedData[label].runDistance, 0);
-    const totalPushups = labels.reduce((sum, label) => sum + groupedData[label].pushups, 0);
-    const totalSquats = labels.reduce((sum, label) => sum + groupedData[label].squats, 0);
-    const totalMountainClimbers = labels.reduce((sum, label) => sum + groupedData[label].mountainClimbers, 0);
+    const totals = labels.reduce((acc, label) => {
+        const data = groupedData[label];
+        acc.runDurationSeconds += data.runDurationSeconds;
+        acc.runDistance += data.runDistance;
+        acc.pushups += data.pushups;
+        acc.squats += data.squats;
+        acc.mountainClimbers += data.mountainClimbers;
+        return acc;
+    }, { runDurationSeconds: 0, runDistance: 0, pushups: 0, squats: 0, mountainClimbers: 0 });
 
-    // 计算平均配速
-    const avgPace = totalRunDistance > 0 ? calculatePace(totalRunDurationSeconds, totalRunDistance) : '-';
+    const avgPace = totals.runDistance > 0 ? calculatePace(totals.runDurationSeconds, totals.runDistance) : '-';
 
-    document.getElementById('statsGrid').innerHTML = `
+    DOM.statsGrid.innerHTML = `
         <div class="stat-card">
-            <h3>${secondsToTime(totalRunDurationSeconds)}</h3>
+            <h3>${secondsToTime(totals.runDurationSeconds)}</h3>
             <p>跑步总时长</p>
         </div>
         <div class="stat-card">
-            <h3>${totalRunDistance.toFixed(2)}</h3>
+            <h3>${totals.runDistance.toFixed(2)}</h3>
             <p>跑步总距离（公里）</p>
         </div>
         <div class="stat-card">
@@ -558,21 +481,21 @@ function updateStatCards(labels, groupedData) {
             <p>平均配速</p>
         </div>
         <div class="stat-card">
-            <h3>${totalPushups}</h3>
+            <h3>${totals.pushups}</h3>
             <p>俯卧撑总数</p>
         </div>
         <div class="stat-card">
-            <h3>${totalSquats}</h3>
+            <h3>${totals.squats}</h3>
             <p>深蹲总数</p>
         </div>
         <div class="stat-card">
-            <h3>${totalMountainClimbers}</h3>
+            <h3>${totals.mountainClimbers}</h3>
             <p>登山跑总数</p>
         </div>
     `;
 
     return {
-        runDurationData,
+        runDurationData: dataMapper('runDurationSeconds').map(v => v / 60),
         runDistanceData,
         paceData,
         pushupsData,
@@ -581,14 +504,10 @@ function updateStatCards(labels, groupedData) {
     };
 }
 
-/**
- * 绘制配速图表（更精细的单位）
- */
 function drawPaceChart(labels, paceData) {
-    // 将配速从分钟转换为秒（用于更精细的显示）
     const paceInSeconds = paceData.map(pace => pace ? pace * 60 : null);
 
-    paceChart = drawChart('paceChart', paceChart, labels, [
+    charts.pace = drawChart('paceChart', charts.pace, labels, [
         {
             label: '配速（秒/公里）',
             data: paceInSeconds,
@@ -600,25 +519,25 @@ function drawPaceChart(labels, paceData) {
     ], {
         beginAtZero: false,
         y: {
-            suggestedMin: 300,  // 5分钟
-            suggestedMax: 420,  // 7分钟
+            suggestedMin: 300,
+            suggestedMax: 420,
             ticks: {
-                callback: function(value) {
+                callback: (value) => {
                     const minutes = Math.floor(value / 60);
                     const seconds = Math.floor(value % 60);
-                    return `${minutes}'${seconds.toString().padStart(2, '0')}"`;
+                    return `${minutes}'${String(seconds).padStart(2, '0')}"`;
                 }
             }
         },
         plugins: {
             tooltip: {
                 callbacks: {
-                    label: function(context) {
+                    label: (context) => {
                         const seconds = context.parsed.y;
                         if (seconds === null) return '';
                         const minutes = Math.floor(seconds / 60);
                         const secs = Math.floor(seconds % 60);
-                        return `配速: ${minutes}'${secs.toString().padStart(2, '0')}" /公里`;
+                        return `配速: ${minutes}'${String(secs).padStart(2, '0')}" /公里`;
                     }
                 }
             }
@@ -626,24 +545,14 @@ function drawPaceChart(labels, paceData) {
     });
 }
 
-/**
- * 通用图表绘制函数
- */
 function drawChart(chartId, chartRef, labels, datasets, yAxisOptions = {}) {
     const ctx = document.getElementById(chartId).getContext('2d');
 
-    // 销毁旧图表
-    if (chartRef) {
-        chartRef.destroy();
-    }
+    if (chartRef) chartRef.destroy();
 
-    // 创建新图表
     return new Chart(ctx, {
         type: currentChartType,
-        data: {
-            labels: labels,
-            datasets: datasets
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -652,9 +561,7 @@ function drawChart(chartId, chartRef, labels, datasets, yAxisOptions = {}) {
                     position: 'top',
                     labels: {
                         padding: 15,
-                        font: {
-                            size: 13
-                        }
+                        font: { size: 13 }
                     }
                 },
                 ...yAxisOptions.plugins
@@ -662,26 +569,17 @@ function drawChart(chartId, chartRef, labels, datasets, yAxisOptions = {}) {
             scales: {
                 y: {
                     beginAtZero: yAxisOptions.beginAtZero !== false,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    },
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
                     ...yAxisOptions.y
                 },
-                x: {
-                    grid: {
-                        display: false
-                    }
-                }
+                x: { grid: { display: false } }
             }
         }
     });
 }
 
-/**
- * 绘制力量训练图表(深蹲、俯卧撑和登山跑)
- */
 function drawStrengthChart(labels, pushupsData, squatsData, mountainClimbersData) {
-    strengthChart = drawChart('strengthChart', strengthChart, labels, [
+    charts.strength = drawChart('strengthChart', charts.strength, labels, [
         {
             label: '俯卧撑(个)',
             data: pushupsData,
@@ -709,11 +607,8 @@ function drawStrengthChart(labels, pushupsData, squatsData, mountainClimbersData
     ]);
 }
 
-/**
- * 绘制跑步数据图表(仅跑步距离)
- */
 function drawRunningChart(labels, runDistanceData) {
-    runningChart = drawChart('runningChart', runningChart, labels, [
+    charts.running = drawChart('runningChart', charts.running, labels, [
         {
             label: '跑步距离(公里)',
             data: runDistanceData,
@@ -725,76 +620,50 @@ function drawRunningChart(labels, runDistanceData) {
     ]);
 }
 
-/**
- * 更新图表和统计数据
- */
 function updateCharts() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-
-    // 过滤数据
-    let filteredData = exerciseData.filter(record => {
-        return (!startDate || record.date >= startDate) && (!endDate || record.date <= endDate);
+    const filteredData = exerciseData.filter(record => {
+        return (!DOM.startDate.value || record.date >= DOM.startDate.value) && 
+               (!DOM.endDate.value || record.date <= DOM.endDate.value);
     });
 
-    // 分组数据
     const groupedData = groupDataByPeriod(filteredData);
     const labels = Object.keys(groupedData).sort();
-
-    // 更新统计卡片
     const datasets = updateStatCards(labels, groupedData);
 
-    // 只绘制被选中的图表
-    if (document.getElementById('showPaceChart').checked) {
+    if (DOM.chartCheckboxes.pace.checked) {
         drawPaceChart(labels, datasets.paceData);
     }
 
-    if (document.getElementById('showStrengthChart').checked) {
+    if (DOM.chartCheckboxes.strength.checked) {
         drawStrengthChart(labels, datasets.pushupsData, datasets.squatsData, datasets.mountainClimbersData);
     }
 
-    if (document.getElementById('showRunningChart').checked) {
+    if (DOM.chartCheckboxes.running.checked) {
         drawRunningChart(labels, datasets.runDistanceData);
     }
 }
 
-/**
- * 加载设置信息
- */
 async function loadSettings() {
     try {
         const config = await window.electronAPI.getConfig();
-        const dataPathElement = document.getElementById('currentDataPath');
-        if (dataPathElement) {
-            dataPathElement.textContent = config.dataFilePath || '加载失败';
+        if (DOM.currentDataPath) {
+            DOM.currentDataPath.textContent = config.dataFilePath || '加载失败';
         }
     } catch (error) {
         console.error('加载设置错误:', error);
     }
 }
 
-/**
- * 处理更改数据存储位置
- */
 async function handleChangeDataPath() {
     try {
-        // 打开文件选择对话框
         const newPath = await window.electronAPI.chooseDataPath();
+        if (!newPath) return;
 
-        if (!newPath) {
-            return; // 用户取消了选择
-        }
-
-        // 设置新的数据文件路径
         const result = await window.electronAPI.setDataPath(newPath);
 
         if (result.success) {
             showToast(`数据存储位置已更新！\n\n新路径：${result.newPath}\n\n数据已从旧位置复制到新位置。`, 'success');
-
-            // 更新显示的路径
-            document.getElementById('currentDataPath').textContent = result.newPath;
-
-            // 重新加载数据
+            DOM.currentDataPath.textContent = result.newPath;
             await loadData();
         } else {
             throw new Error(result.error || '更新路径失败');

@@ -2,49 +2,49 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// 配置文件路径（用于存储用户设置）
 const CONFIG_FILE = path.join(app.getPath('userData'), 'config.json');
-
-// 默认数据文件路径
 let DATA_FILE = path.join(app.getPath('userData'), 'exercise-data.json');
 
-// 加载配置文件
-function loadConfig() {
+function readJSONFile(filePath, defaultValue = []) {
     try {
-        if (fs.existsSync(CONFIG_FILE)) {
-            const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-            if (config.dataFilePath && fs.existsSync(path.dirname(config.dataFilePath))) {
-                DATA_FILE = config.dataFilePath;
-            }
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
         }
+        return defaultValue;
     } catch (error) {
-        console.error('加载配置文件失败:', error);
+        console.error(`读取文件失败 ${filePath}:`, error);
+        return defaultValue;
     }
 }
 
-// 保存配置文件
-function saveConfig(config) {
+function writeJSONFile(filePath, data) {
     try {
-        const configDir = path.dirname(CONFIG_FILE);
-        if (!fs.existsSync(configDir)) {
-            fs.mkdirSync(configDir, { recursive: true });
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
         }
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
         return true;
     } catch (error) {
-        console.error('保存配置文件失败:', error);
+        console.error(`写入文件失败 ${filePath}:`, error);
         return false;
     }
 }
 
-// 确保数据文件存在
-function ensureDataFile() {
-    const dataDir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+function loadConfig() {
+    const config = readJSONFile(CONFIG_FILE, {});
+    if (config.dataFilePath && fs.existsSync(path.dirname(config.dataFilePath))) {
+        DATA_FILE = config.dataFilePath;
     }
+}
+
+function saveConfig(config) {
+    return writeJSONFile(CONFIG_FILE, config);
+}
+
+function ensureDataFile() {
     if (!fs.existsSync(DATA_FILE)) {
-        fs.writeFileSync(DATA_FILE, JSON.stringify([]));
+        writeJSONFile(DATA_FILE, []);
     }
 }
 
@@ -99,53 +99,35 @@ app.on('window-all-closed', () => {
     }
 });
 
-// IPC 处理器 - 获取所有记录
 ipcMain.handle('get-records', async () => {
-    try {
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error('读取数据失败:', error);
-        return [];
-    }
+    return readJSONFile(DATA_FILE, []);
 });
 
-// IPC 处理器 - 保存记录
 ipcMain.handle('save-record', async (event, record) => {
     try {
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
-        const records = JSON.parse(data);
-
-        // 添加ID和时间戳
+        const records = readJSONFile(DATA_FILE, []);
         record.id = Date.now();
         records.push(record);
-
-        // 按日期降序排序
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // 保存到文件
-        fs.writeFileSync(DATA_FILE, JSON.stringify(records, null, 2));
-
-        return { success: true, record };
+        if (writeJSONFile(DATA_FILE, records)) {
+            return { success: true, record };
+        }
+        throw new Error('写入文件失败');
     } catch (error) {
         console.error('保存数据失败:', error);
         return { success: false, error: error.message };
     }
 });
 
-// IPC 处理器 - 删除记录
 ipcMain.handle('delete-record', async (event, id) => {
     try {
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
-        let records = JSON.parse(data);
-
-        // 过滤掉要删除的记录
-        records = records.filter(record => record.id !== id);
-
-        // 保存到文件
-        fs.writeFileSync(DATA_FILE, JSON.stringify(records, null, 2));
-
-        return { success: true };
+        const records = readJSONFile(DATA_FILE, []).filter(record => record.id !== id);
+        
+        if (writeJSONFile(DATA_FILE, records)) {
+            return { success: true };
+        }
+        throw new Error('写入文件失败');
     } catch (error) {
         console.error('删除数据失败:', error);
         return { success: false, error: error.message };
@@ -174,38 +156,33 @@ ipcMain.handle('choose-data-path', async () => {
     return null;
 });
 
-// IPC 处理器 - 设置数据文件路径
 ipcMain.handle('set-data-path', async (event, newPath) => {
+    const oldPath = DATA_FILE;
     try {
-        // 确保目标目录存在
         const targetDir = path.dirname(newPath);
         if (!fs.existsSync(targetDir)) {
             fs.mkdirSync(targetDir, { recursive: true });
         }
 
-        // 如果新路径不存在文件，复制当前数据到新位置
-        if (!fs.existsSync(newPath) && fs.existsSync(DATA_FILE)) {
-            fs.copyFileSync(DATA_FILE, newPath);
-        } else if (!fs.existsSync(newPath)) {
-            // 如果都不存在，创建新文件
-            fs.writeFileSync(newPath, JSON.stringify([]));
+        if (!fs.existsSync(newPath)) {
+            if (fs.existsSync(DATA_FILE)) {
+                fs.copyFileSync(DATA_FILE, newPath);
+            } else {
+                writeJSONFile(newPath, []);
+            }
         }
 
-        // 更新数据文件路径
-        const oldPath = DATA_FILE;
         DATA_FILE = newPath;
 
-        // 保存配置
-        const success = saveConfig({ dataFilePath: newPath });
-
-        if (success) {
+        if (saveConfig({ dataFilePath: newPath })) {
             return { success: true, oldPath, newPath };
-        } else {
-            DATA_FILE = oldPath; // 回滚
-            return { success: false, error: '保存配置失败' };
         }
+        
+        DATA_FILE = oldPath;
+        return { success: false, error: '保存配置失败' };
     } catch (error) {
         console.error('设置数据文件路径失败:', error);
+        DATA_FILE = oldPath;
         return { success: false, error: error.message };
     }
 });
