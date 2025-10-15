@@ -45,6 +45,45 @@
                 <span>设置</span>
             </li>
         </ul>
+        
+        <!-- 主题切换器 -->
+        <div class="theme-switcher">
+            <div class="theme-section">
+                <div class="theme-section-title">主题</div>
+                <div class="theme-mode-toggle">
+                    <button class="theme-mode-btn active" data-mode="light">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="5" stroke-width="2"/>
+                            <line x1="12" y1="1" x2="12" y2="3" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="12" y1="21" x2="12" y2="23" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="1" y1="12" x2="3" y2="12" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="21" y1="12" x2="23" y2="12" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke-width="2" stroke-linecap="round"/>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        浅色
+                    </button>
+                    <button class="theme-mode-btn" data-mode="dark">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        深色
+                    </button>
+                </div>
+            </div>
+            <div class="theme-section">
+                <div class="theme-section-title">颜色</div>
+                <div class="theme-colors">
+                    <button class="theme-color-btn active" data-color="purple" title="紫色"></button>
+                    <button class="theme-color-btn" data-color="blue" title="蓝色"></button>
+                    <button class="theme-color-btn" data-color="green" title="绿色"></button>
+                    <button class="theme-color-btn" data-color="orange" title="橙色"></button>
+                    <button class="theme-color-btn" data-color="pink" title="粉色"></button>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <!-- 主内容区域 -->
@@ -130,18 +169,81 @@
             </div>
 
             <div class="content-card">
-                <div class="table-container">
+                <!-- 搜索框 -->
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                        <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <input type="text" class="search-input" id="recordSearch" placeholder="搜索日期、体感记录...">
+                </div>
+
+                <!-- 空状态 -->
+                <div class="empty-state" id="historyEmptyState" style="display: none;">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>还没有锻炼记录</h3>
+                    <p>开始记录您的第一次锻炼吧！点击左侧"添加记录"开始。</p>
+                    <div class="empty-state-action">
+                        <button class="btn-primary" onclick="switchPage('record')">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            添加第一条记录
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container" id="historyTableContainer">
                     <table class="records-table" id="recordsTable">
                         <thead>
                             <tr>
-                                <th>日期</th>
-                                <th>跑步时间</th>
-                                <th>时长</th>
-                                <th>距离(公里)</th>
+                                <th class="sortable" data-sort="date">
+                                    日期
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
+                                <th class="sortable" data-sort="runTime">
+                                    跑步时间
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
+                                <th class="sortable" data-sort="runDurationSeconds">
+                                    时长
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
+                                <th class="sortable" data-sort="runDistance">
+                                    距离(公里)
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
                                 <th>配速(分/公里)</th>
-                                <th>俯卧撑</th>
-                                <th>深蹲</th>
-                                <th>登山跑</th>
+                                <th class="sortable" data-sort="pushups">
+                                    俯卧撑
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
+                                <th class="sortable" data-sort="squats">
+                                    深蹲
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
+                                <th class="sortable" data-sort="mountainClimbers">
+                                    登山跑
+                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </th>
                                 <th>体感记录</th>
                                 <th>操作</th>
                             </tr>
@@ -159,7 +261,43 @@
                 <p class="page-subtitle">可视化展示您的锻炼成果</p>
             </div>
 
-            <div class="content-card">
+            <!-- 空状态 -->
+            <div class="empty-state" id="statsEmptyState" style="display: none;">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h3>暂无数据统计</h3>
+                <p>添加您的锻炼记录后，这里将显示精美的数据统计图表。</p>
+                <div class="empty-state-action">
+                    <button class="btn-primary" onclick="switchPage('record')">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        开始记录
+                    </button>
+                </div>
+            </div>
+
+            <!-- 热力图日历 -->
+            <div class="heatmap-container" id="heatmapContainer" style="display: none;">
+                <div class="heatmap-header">
+                    <div class="heatmap-title">锻炼热力图</div>
+                    <div class="heatmap-legend">
+                        <span>少</span>
+                        <div class="heatmap-legend-item" style="background: var(--border-light);"></div>
+                        <div class="heatmap-legend-item" style="background: var(--primary-color); opacity: 0.3;"></div>
+                        <div class="heatmap-legend-item" style="background: var(--primary-color); opacity: 0.5;"></div>
+                        <div class="heatmap-legend-item" style="background: var(--primary-color); opacity: 0.7;"></div>
+                        <div class="heatmap-legend-item" style="background: var(--primary-color);"></div>
+                        <span>多</span>
+                    </div>
+                </div>
+                <div class="heatmap-grid" id="heatmapGrid"></div>
+            </div>
+
+            <div class="content-card" id="statsContent" style="display: none;">
                 <div class="controls-row">
                     <div class="tab-container">
                         <button class="tab-btn active" data-tab="daily">按天</button>

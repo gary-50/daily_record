@@ -2,10 +2,14 @@ const CONSTANTS = {
     CHART_SCROLL_DELAY: 150,
     TOAST_DURATION: 3000,
     TOAST_FADE_OUT: 2700,
-    DEFAULT_DATE_RANGE: 30
+    DEFAULT_DATE_RANGE: 30,
+    COUNT_ANIMATION_DURATION: 1000
 };
 
 let exerciseData = [];
+let filteredData = [];
+let currentSortColumn = null;
+let currentSortDirection = 'desc';
 const charts = {
     pace: null,
     strength: null,
@@ -14,6 +18,7 @@ const charts = {
 let currentTab = 'daily';
 let currentChartType = 'line';
 let currentPage = 'record';
+let heatmapTooltip = null;
 
 const DOM = {};
 
@@ -27,6 +32,13 @@ function cacheDOMElements() {
     DOM.toastContainer = document.getElementById('toastContainer');
     DOM.currentDataPath = document.getElementById('currentDataPath');
     DOM.changeDataPathBtn = document.getElementById('changeDataPathBtn');
+    DOM.recordSearch = document.getElementById('recordSearch');
+    DOM.historyEmptyState = document.getElementById('historyEmptyState');
+    DOM.historyTableContainer = document.getElementById('historyTableContainer');
+    DOM.statsEmptyState = document.getElementById('statsEmptyState');
+    DOM.statsContent = document.getElementById('statsContent');
+    DOM.heatmapContainer = document.getElementById('heatmapContainer');
+    DOM.heatmapGrid = document.getElementById('heatmapGrid');
     
     DOM.chartWrappers = {
         pace: document.getElementById('paceChartWrapper'),
@@ -51,25 +63,45 @@ function initializeApp() {
     startDate.setDate(startDate.getDate() - CONSTANTS.DEFAULT_DATE_RANGE);
     DOM.startDate.valueAsDate = startDate;
 
+    initTheme();
     bindEventListeners();
     loadData();
     loadSettings();
 }
 
 function switchPage(pageName) {
-    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    if (currentPage === pageName) return;
 
     const targetPage = document.getElementById(pageName + 'Page');
     const targetNav = document.querySelector(`.nav-item[data-page="${pageName}"]`);
     
-    if (targetPage) targetPage.classList.add('active');
+    // 立即隐藏所有页面
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    
+    // 更新导航状态
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if (targetNav) targetNav.classList.add('active');
+
+    // 显示新页面并播放进入动画
+    if (targetPage) {
+        requestAnimationFrame(() => {
+            targetPage.classList.add('active');
+        });
+    }
 
     currentPage = pageName;
 
+    // 延迟加载数据，等待动画完成
     if (pageName === 'stats') {
-        setTimeout(updateCharts, 100);
+        setTimeout(() => {
+            updateEmptyStates();
+            renderHeatmap();
+            updateCharts();
+        }, 150);
+    } else if (pageName === 'history') {
+        setTimeout(updateEmptyStates, 150);
     }
 }
 
@@ -116,18 +148,53 @@ function bindEventListeners() {
     if (DOM.changeDataPathBtn) {
         DOM.changeDataPathBtn.addEventListener('click', handleChangeDataPath);
     }
+
+    // 主题切换事件
+    document.querySelectorAll('.theme-mode-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.theme-mode-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            setTheme(this.dataset.mode);
+        });
+    });
+
+    document.querySelectorAll('.theme-color-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.theme-color-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            setThemeColor(this.dataset.color);
+        });
+    });
+
+    // 搜索框事件
+    if (DOM.recordSearch) {
+        DOM.recordSearch.addEventListener('input', handleSearch);
+    }
+
+    // 表格排序事件
+    document.querySelectorAll('.records-table th.sortable').forEach(th => {
+        th.addEventListener('click', function() {
+            handleSort(this.dataset.sort);
+        });
+    });
 }
 
 async function loadData() {
     try {
+        showSkeletonLoading();
         exerciseData = await window.electronAPI.getRecords();
+        filteredData = [...exerciseData];
+        hideSkeletonLoading();
         displayRecords();
+        updateEmptyStates();
         if (currentPage === 'stats') {
+            renderHeatmap();
             updateCharts();
         }
     } catch (error) {
         console.error('加载数据错误:', error);
         showToast('加载数据失败', 'error');
+        hideSkeletonLoading();
     }
 }
 
@@ -307,9 +374,38 @@ async function handleFormSubmit(e) {
 function displayRecords() {
     DOM.recordsBody.innerHTML = '';
 
-    const sortedData = [...exerciseData].sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (filteredData.length === 0) {
+        return;
+    }
 
-    sortedData.forEach(record => {
+    let dataToDisplay = [...filteredData];
+
+    // 应用排序
+    if (currentSortColumn) {
+        dataToDisplay.sort((a, b) => {
+            let aVal = a[currentSortColumn];
+            let bVal = b[currentSortColumn];
+
+            // 处理空值
+            if (aVal === null || aVal === undefined || aVal === '') aVal = currentSortDirection === 'asc' ? Infinity : -Infinity;
+            if (bVal === null || bVal === undefined || bVal === '') bVal = currentSortDirection === 'asc' ? Infinity : -Infinity;
+
+            // 字符串比较
+            if (typeof aVal === 'string' && typeof bVal === 'string') {
+                return currentSortDirection === 'asc' 
+                    ? aVal.localeCompare(bVal) 
+                    : bVal.localeCompare(aVal);
+            }
+
+            // 数字比较
+            return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+    } else {
+        // 默认按日期降序
+        dataToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    dataToDisplay.forEach(record => {
         const durationSeconds = record.runDurationSeconds || (record.runDuration ? record.runDuration * 60 : 0);
         const durationDisplay = secondsToTime(durationSeconds);
         const pace = calculatePace(durationSeconds, record.runDistance);
@@ -331,6 +427,8 @@ function displayRecords() {
         `;
         DOM.recordsBody.appendChild(tr);
     });
+
+    updateSortIcons();
 }
 
 /**
@@ -672,6 +770,260 @@ async function handleChangeDataPath() {
         console.error('更改数据存储位置错误:', error);
         showToast('更改数据存储位置失败：' + error.message, 'error');
     }
+}
+
+// 主题系统功能
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedColor = localStorage.getItem('themeColor') || 'purple';
+    
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.documentElement.setAttribute('data-color', savedColor);
+    
+    // 更新按钮状态
+    document.querySelectorAll('.theme-mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === savedTheme);
+    });
+    
+    document.querySelectorAll('.theme-color-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.color === savedColor);
+    });
+}
+
+function setTheme(mode) {
+    document.documentElement.setAttribute('data-theme', mode);
+    localStorage.setItem('theme', mode);
+}
+
+function setThemeColor(color) {
+    document.documentElement.setAttribute('data-color', color);
+    localStorage.setItem('themeColor', color);
+}
+
+// 空状态管理
+function updateEmptyStates() {
+    const hasData = exerciseData.length > 0;
+    
+    // 历史记录空状态
+    if (DOM.historyEmptyState && DOM.historyTableContainer) {
+        if (hasData && filteredData.length === 0) {
+            // 有数据但搜索无结果
+            DOM.historyEmptyState.style.display = 'none';
+            DOM.historyTableContainer.style.display = 'block';
+        } else if (!hasData) {
+            DOM.historyEmptyState.style.display = 'block';
+            DOM.historyTableContainer.style.display = 'none';
+        } else {
+            DOM.historyEmptyState.style.display = 'none';
+            DOM.historyTableContainer.style.display = 'block';
+        }
+    }
+    
+    // 统计页面空状态
+    if (DOM.statsEmptyState && DOM.statsContent && DOM.heatmapContainer) {
+        if (!hasData) {
+            DOM.statsEmptyState.style.display = 'block';
+            DOM.statsContent.style.display = 'none';
+            DOM.heatmapContainer.style.display = 'none';
+        } else {
+            DOM.statsEmptyState.style.display = 'none';
+            DOM.statsContent.style.display = 'block';
+            DOM.heatmapContainer.style.display = 'block';
+        }
+    }
+}
+
+// 搜索功能
+function handleSearch(e) {
+    const searchTerm = e.target.value.toLowerCase().trim();
+    
+    if (searchTerm === '') {
+        filteredData = [...exerciseData];
+    } else {
+        filteredData = exerciseData.filter(record => {
+            return record.date.includes(searchTerm) ||
+                   (record.feeling && record.feeling.toLowerCase().includes(searchTerm)) ||
+                   (record.runTime && record.runTime.includes(searchTerm));
+        });
+    }
+    
+    displayRecords();
+    updateEmptyStates();
+}
+
+// 排序功能
+function handleSort(column) {
+    if (currentSortColumn === column) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortColumn = column;
+        currentSortDirection = 'asc';
+    }
+    
+    displayRecords();
+}
+
+function updateSortIcons() {
+    document.querySelectorAll('.records-table th.sortable').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+        if (th.dataset.sort === currentSortColumn) {
+            th.classList.add(currentSortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        }
+    });
+}
+
+// 数字增长动画
+function animateNumber(element, targetValue, duration = CONSTANTS.COUNT_ANIMATION_DURATION, isDecimal = false) {
+    const startValue = 0;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const easeOutQuad = progress * (2 - progress);
+        const currentValue = startValue + (targetValue - startValue) * easeOutQuad;
+        
+        if (isDecimal) {
+            element.textContent = currentValue.toFixed(2);
+        } else {
+            element.textContent = Math.floor(currentValue);
+        }
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            if (isDecimal) {
+                element.textContent = targetValue.toFixed(2);
+            } else {
+                element.textContent = targetValue;
+            }
+        }
+    }
+    
+    requestAnimationFrame(update);
+}
+
+// 热力图功能
+function renderHeatmap() {
+    if (!DOM.heatmapGrid || exerciseData.length === 0) return;
+    
+    DOM.heatmapGrid.innerHTML = '';
+    
+    // 生成过去52周（364天）的日期
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 364);
+    
+    // 调整到周日开始
+    const dayOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+    
+    // 创建日期-运动强度映射
+    const exerciseMap = {};
+    exerciseData.forEach(record => {
+        const score = (record.runDistance || 0) + 
+                     (record.pushups || 0) * 0.01 + 
+                     (record.squats || 0) * 0.01 + 
+                     (record.mountainClimbers || 0) * 0.01;
+        exerciseMap[record.date] = score;
+    });
+    
+    // 计算强度级别阈值
+    const scores = Object.values(exerciseMap);
+    const maxScore = Math.max(...scores, 1);
+    
+    // 生成热力图格子
+    for (let i = 0; i < 371; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        
+        const dateStr = date.toISOString().split('T')[0];
+        const score = exerciseMap[dateStr] || 0;
+        
+        // 计算级别 (0-4)
+        let level = 0;
+        if (score > 0) {
+            level = Math.min(Math.ceil((score / maxScore) * 4), 4);
+        }
+        
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-day';
+        cell.setAttribute('data-level', level);
+        cell.setAttribute('data-date', dateStr);
+        cell.setAttribute('data-score', score.toFixed(2));
+        
+        // 添加hover事件
+        cell.addEventListener('mouseenter', showHeatmapTooltip);
+        cell.addEventListener('mouseleave', hideHeatmapTooltip);
+        cell.addEventListener('click', () => {
+            DOM.recordSearch.value = dateStr;
+            handleSearch({ target: DOM.recordSearch });
+            switchPage('history');
+        });
+        
+        DOM.heatmapGrid.appendChild(cell);
+    }
+}
+
+function showHeatmapTooltip(e) {
+    const cell = e.target;
+    const date = cell.getAttribute('data-date');
+    const score = parseFloat(cell.getAttribute('data-score'));
+    const level = cell.getAttribute('data-level');
+    
+    let tooltip = document.getElementById('heatmap-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'heatmap-tooltip';
+        tooltip.className = 'heatmap-tooltip';
+        document.body.appendChild(tooltip);
+    }
+    
+    const record = exerciseData.find(r => r.date === date);
+    let content = `<strong>${date}</strong><br>`;
+    
+    if (record) {
+        if (record.runDistance) content += `跑步: ${record.runDistance}km<br>`;
+        if (record.pushups) content += `俯卧撑: ${record.pushups}个<br>`;
+        if (record.squats) content += `深蹲: ${record.squats}个<br>`;
+        if (record.mountainClimbers) content += `登山跑: ${record.mountainClimbers}个`;
+    } else {
+        content += '无运动记录';
+    }
+    
+    tooltip.innerHTML = content;
+    tooltip.style.display = 'block';
+    
+    // 定位tooltip
+    const rect = cell.getBoundingClientRect();
+    tooltip.style.left = rect.left + rect.width / 2 - tooltip.offsetWidth / 2 + 'px';
+    tooltip.style.top = rect.top - tooltip.offsetHeight - 8 + 'px';
+}
+
+function hideHeatmapTooltip() {
+    const tooltip = document.getElementById('heatmap-tooltip');
+    if (tooltip) {
+        tooltip.style.display = 'none';
+    }
+}
+
+// 骨架屏功能
+function showSkeletonLoading() {
+    if (currentPage === 'stats' && DOM.statsGrid) {
+        DOM.statsGrid.innerHTML = `
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+        `;
+    }
+}
+
+function hideSkeletonLoading() {
+    // 骨架屏会被实际内容替换，所以不需要特别清理
 }
 
 // 页面加载完成后初始化应用
