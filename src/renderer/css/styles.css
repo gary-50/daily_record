@@ -72,6 +72,41 @@
     --shadow-primary: 0 4px 12px rgba(233, 30, 99, 0.3);
 }
 
+/* 深色模式下的侧边栏颜色 - 紫色 */
+[data-theme="dark"][data-color="purple"] {
+    --primary-color: #4a5bb8;
+    --primary-dark: #3d4a8c;
+    --shadow-primary: 0 4px 12px rgba(74, 91, 184, 0.3);
+}
+
+/* 深色模式下的侧边栏颜色 - 蓝色 */
+[data-theme="dark"][data-color="blue"] {
+    --primary-color: #2574a9;
+    --primary-dark: #1f5f8b;
+    --shadow-primary: 0 4px 12px rgba(37, 116, 169, 0.3);
+}
+
+/* 深色模式下的侧边栏颜色 - 绿色 */
+[data-theme="dark"][data-color="green"] {
+    --primary-color: #229954;
+    --primary-dark: #1d7a44;
+    --shadow-primary: 0 4px 12px rgba(34, 153, 84, 0.3);
+}
+
+/* 深色模式下的侧边栏颜色 - 橙色 */
+[data-theme="dark"][data-color="orange"] {
+    --primary-color: #ba6516;
+    --primary-dark: #994d0f;
+    --shadow-primary: 0 4px 12px rgba(186, 101, 22, 0.3);
+}
+
+/* 深色模式下的侧边栏颜色 - 粉色 */
+[data-theme="dark"][data-color="pink"] {
+    --primary-color: #c2185b;
+    --primary-dark: #9c1548;
+    --shadow-primary: 0 4px 12px rgba(194, 24, 91, 0.3);
+}
+
 * {
     margin: 0;
     padding: 0;
