@@ -469,6 +469,8 @@ async function handleDietFormSubmit(e) {
         e,
         () => ({
             date: DOM.dietDate.value,
+            waterCups: parseInt(document.getElementById('waterCups').value) || 0,
+            snacks: document.getElementById('snacks').value || '',
             breakfast: {
                 time: document.getElementById('breakfastTime').value || '',
                 foods: document.getElementById('breakfastFoods').value || '',
@@ -533,23 +535,78 @@ function displayRecords() {
         const feeling = record.feeling || '-';
         const feelingDisplay = feeling === '-' ? '-' : `<span class="feeling-preview" onclick="showFeelingModal('${encodeURIComponent(feeling)}')">${feeling}</span>`;
 
+        // 创建概览行
         const tr = document.createElement('tr');
+        tr.className = 'record-row';
         tr.innerHTML = `
+            <td class="toggle-cell" onclick="toggleExerciseRow(this)">
+                <svg class="row-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </td>
             <td>${record.date}</td>
             <td>${record.runTime || '-'}</td>
             <td>${durationDisplay}</td>
             <td>${record.runDistance || '-'}</td>
-            <td>${pace}</td>
-            <td>${record.pushups || '-'}</td>
-            <td>${record.squats || '-'}</td>
-            <td>${record.mountainClimbers || '-'}</td>
-            <td class="feeling-cell">${feelingDisplay}</td>
-            <td><button class="delete-btn" onclick="deleteRecord(${record.id})">删除</button></td>
         `;
+        
+        // 创建详情行（默认隐藏）
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'record-detail-row';
+        detailRow.style.display = 'none';
+        detailRow.innerHTML = `
+            <td colspan="5">
+                <div class="record-detail-content">
+                    <div class="detail-section">
+                        <div class="detail-item">
+                            <label>配速</label>
+                            <span>${pace}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>俯卧撑</label>
+                            <span>${record.pushups || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>深蹲</label>
+                            <span>${record.squats || '-'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>登山跑</label>
+                            <span>${record.mountainClimbers || '-'}</span>
+                        </div>
+                    </div>
+                    ${feeling !== '-' ? `
+                        <div class="detail-feeling">
+                            <label>体感记录：</label>
+                            <p>${feeling}</p>
+                        </div>
+                    ` : ''}
+                    <div class="detail-actions">
+                        <button class="delete-btn" onclick="deleteRecord(${record.id})">删除记录</button>
+                    </div>
+                </div>
+            </td>
+        `;
+        
         DOM.recordsBody.appendChild(tr);
+        DOM.recordsBody.appendChild(detailRow);
     });
 
     updateSortIcons();
+}
+
+function toggleExerciseRow(cell) {
+    const row = cell.parentElement;
+    const detailRow = row.nextElementSibling;
+    const icon = cell.querySelector('.row-toggle-icon');
+    
+    if (detailRow.style.display === 'none') {
+        detailRow.style.display = '';
+        row.classList.add('expanded');
+    } else {
+        detailRow.style.display = 'none';
+        row.classList.remove('expanded');
+    }
 }
 
 /**
@@ -644,21 +701,54 @@ function displayDietRecords() {
         const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
         const weekday = weekdays[dateObj.getDay()];
         
+        // 构建额外信息（饮水和零食）
+        let extraInfo = '';
+        if (record.waterCups > 0 || record.snacks) {
+            extraInfo = '<div class="diet-extra-info">';
+            if (record.waterCups > 0) {
+                extraInfo += `
+                    <div class="extra-info-item">
+                        <svg class="extra-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>饮水 ${record.waterCups} 杯</span>
+                    </div>
+                `;
+            }
+            if (record.snacks) {
+                extraInfo += `
+                    <div class="extra-info-item">
+                        <svg class="extra-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>零食: ${record.snacks}</span>
+                    </div>
+                `;
+            }
+            extraInfo += '</div>';
+        }
+        
         card.innerHTML = `
-            <div class="diet-card-header">
+            <div class="diet-card-header" onclick="toggleDietCard(this.parentElement)">
                 <div class="diet-card-date">
                     <h3>${record.date}</h3>
                     <span class="diet-card-weekday">${weekday}</span>
                 </div>
-                <button class="diet-card-delete" onclick="deleteDietRecord(${record.id})" title="删除这天的记录">
-                    <svg viewBox="0 0 24 24" fill="white">
-                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg class="diet-card-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span>删除</span>
-                </button>
+                    <button class="diet-card-delete" onclick="event.stopPropagation(); deleteDietRecord(${record.id})" title="删除这天的记录">
+                        <svg viewBox="0 0 24 24" fill="white">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                        <span>删除</span>
+                    </button>
+                </div>
             </div>
             
-            <div class="diet-card-content">
+            <div class="diet-card-content" style="display: none;">
+                ${extraInfo}
                 ${createMealSection('breakfast', '早餐', record.breakfast)}
                 ${createMealSection('lunch', '午餐', record.lunch)}
                 ${createMealSection('dinner', '晚餐', record.dinner)}
@@ -749,6 +839,7 @@ function handleDietSearch() {
     } else {
         filteredDietData = dietData.filter(record => {
             const date = record.date.toLowerCase();
+            const snacks = (record.snacks || '').toLowerCase();
             const breakfastFoods = (record.breakfast?.foods || '').toLowerCase();
             const lunchFoods = (record.lunch?.foods || '').toLowerCase();
             const dinnerFoods = (record.dinner?.foods || '').toLowerCase();
@@ -757,6 +848,7 @@ function handleDietSearch() {
             const dinnerNotes = (record.dinner?.notes || '').toLowerCase();
             
             return date.includes(searchTerm) || 
+                   snacks.includes(searchTerm) ||
                    breakfastFoods.includes(searchTerm) || 
                    lunchFoods.includes(searchTerm) || 
                    dinnerFoods.includes(searchTerm) ||
@@ -768,6 +860,19 @@ function handleDietSearch() {
     
     displayDietRecords();
     updateDietEmptyState();
+}
+
+function toggleDietCard(card) {
+    const content = card.querySelector('.diet-card-content');
+    const toggle = card.querySelector('.diet-card-toggle');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        card.classList.add('expanded');
+    } else {
+        content.style.display = 'none';
+        card.classList.remove('expanded');
+    }
 }
 
 function updateDietEmptyState() {

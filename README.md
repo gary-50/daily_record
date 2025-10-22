@@ -2,7 +2,7 @@
 
 > 基于 Electron 的桌面应用，用于记录和管理日常运动与饮食数据。
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-ISC-orange.svg)
 
@@ -352,7 +352,7 @@ git grep "<旧版本号>"  # 例如：git grep "2.1.1"
 
 详细的版本更新记录请查看 [CHANGELOG.md](CHANGELOG.md)。
 
-当前版本：**v3.0.0** - 日常记录系统：饮食模块 + 代码重构
+当前版本：**v3.1.0** - 用户体验优化：历史记录折叠与饮食数据增强
 
 ## 📄 许可证
 

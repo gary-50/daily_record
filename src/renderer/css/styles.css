@@ -695,6 +695,118 @@ button {
     border-bottom: none;
 }
 
+/* 折叠/展开单元格 */
+.toggle-cell {
+    width: 40px;
+    cursor: pointer;
+    text-align: center;
+    padding: 8px !important;
+}
+
+.row-toggle-icon {
+    width: 20px;
+    height: 20px;
+    stroke: var(--primary-color);
+    stroke-width: 2;
+    transition: transform 0.3s ease;
+}
+
+.record-row.expanded .row-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.record-row.expanded {
+    background: linear-gradient(135deg, #f0f2ff 0%, #fafaff 100%);
+}
+
+/* 详情行 */
+.record-detail-row {
+    background: linear-gradient(135deg, #f8f9fb 0%, #ffffff 100%);
+}
+
+.record-detail-row td {
+    padding: 0 !important;
+    border-bottom: 2px solid var(--border-light) !important;
+}
+
+.record-detail-content {
+    padding: 20px 24px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.detail-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.detail-item label {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.detail-item span {
+    font-size: 1.1em;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.detail-feeling {
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    margin-bottom: 16px;
+}
+
+.detail-feeling label {
+    display: block;
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.detail-feeling p {
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.detail-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
 /* 删除按钮 */
 .delete-btn {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
@@ -2530,6 +2642,54 @@ button {
 /* 卡片内容区 */
 .diet-card-content {
     padding: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* 折叠/展开图标 */
+.diet-card-toggle {
+    width: 24px;
+    height: 24px;
+    stroke: white;
+    stroke-width: 2;
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.diet-card.expanded .diet-card-toggle {
+    transform: rotate(180deg);
+}
+
+.diet-card-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* 额外信息（饮水和零食） */
+.diet-extra-info {
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #f8f9fb 0%, #ffffff 100%);
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.extra-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95em;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.extra-info-icon {
+    width: 20px;
+    height: 20px;
+    stroke: var(--primary-color);
+    stroke-width: 2;
+    flex-shrink: 0;
 }
 
 /* 餐次区块 */

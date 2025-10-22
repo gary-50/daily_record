@@ -154,6 +154,19 @@
                                 <label for="dietDate">日期</label>
                                 <input type="date" id="dietDate" required>
                             </div>
+                            <div class="form-group">
+                                <label for="waterCups">饮水杯数</label>
+                                <input type="number" id="waterCups" min="0" step="1" placeholder="例如：8">
+                                <small style="color: #666; font-size: 12px;">记录今天喝了多少杯水</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">零食与饮料</h3>
+                        <div class="form-group">
+                            <label for="snacks">零食饮料备注</label>
+                            <textarea id="snacks" placeholder="记录今天吃的零食、饮料等..." rows="3"></textarea>
                         </div>
                     </div>
 
@@ -278,6 +291,7 @@
                     <table class="records-table" id="recordsTable">
                         <thead>
                             <tr>
+                                <th style="width: 40px;"></th>
                                 <th class="sortable" data-sort="date">
                                     日期
                                     <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -302,27 +316,6 @@
                                         <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                 </th>
-                                <th>配速(分/公里)</th>
-                                <th class="sortable" data-sort="pushups">
-                                    俯卧撑
-                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </th>
-                                <th class="sortable" data-sort="squats">
-                                    深蹲
-                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </th>
-                                <th class="sortable" data-sort="mountainClimbers">
-                                    登山跑
-                                    <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M7 10l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </th>
-                                <th>体感记录</th>
-                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="recordsBody"></tbody>
@@ -701,7 +694,7 @@
                     </h3>
                     <div class="settings-about">
                         <h4>日常记录系统</h4>
-                        <p>版本：3.0.0</p>
+                        <p>版本：3.1.0</p>
                         <p>基于 Electron 的桌面应用，用于记录和管理日常生活数据，包括锻炼和饮食。</p>
                     </div>
                 </div>
