@@ -21,5 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setDataPath: (newPath) => ipcRenderer.invoke('set-data-path', newPath),
 
     // 获取当前配置
-    getConfig: () => ipcRenderer.invoke('get-config')
+    getConfig: () => ipcRenderer.invoke('get-config'),
+
+    // AI 配置相关
+    getAIConfig: () => ipcRenderer.invoke('get-ai-config'),
+    saveAIConfig: (config) => ipcRenderer.invoke('save-ai-config', config)
 });

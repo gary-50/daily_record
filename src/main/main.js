@@ -194,3 +194,37 @@ ipcMain.handle('get-config', async () => {
         defaultPath: path.join(app.getPath('userData'), 'exercise-data.json')
     };
 });
+
+// IPC 处理器 - 获取AI配置
+ipcMain.handle('get-ai-config', async () => {
+    try {
+        const config = readJSONFile(CONFIG_FILE, {});
+        return {
+            success: true,
+            config: config.aiConfig || {
+                apiUrl: '',
+                apiKey: '',
+                model: ''
+            }
+        };
+    } catch (error) {
+        console.error('获取AI配置失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC 处理器 - 保存AI配置
+ipcMain.handle('save-ai-config', async (event, aiConfig) => {
+    try {
+        const config = readJSONFile(CONFIG_FILE, {});
+        config.aiConfig = aiConfig;
+        
+        if (saveConfig(config)) {
+            return { success: true };
+        }
+        throw new Error('保存配置失败');
+    } catch (error) {
+        console.error('保存AI配置失败:', error);
+        return { success: false, error: error.message };
+    }
+});

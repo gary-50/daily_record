@@ -1049,5 +1049,458 @@ function hideSkeletonLoading() {
     // 骨架屏会被实际内容替换，所以不需要特别清理
 }
 
+// ==================== AI 助手功能 ====================
+
+let aiConfig = {
+    apiUrl: '',
+    apiKey: '',
+    model: ''
+};
+let aiChatHistory = [];
+let isAIThinking = false;
+
+// 加载AI配置
+async function loadAIConfig() {
+    try {
+        const result = await window.electronAPI.getAIConfig();
+        if (result.success) {
+            aiConfig = result.config;
+            // 在设置页面填充AI配置
+            if (document.getElementById('aiApiUrl')) {
+                document.getElementById('aiApiUrl').value = aiConfig.apiUrl || '';
+                document.getElementById('aiApiKey').value = aiConfig.apiKey || '';
+                document.getElementById('aiModel').value = aiConfig.model || '';
+            }
+        }
+    } catch (error) {
+        console.error('加载AI配置失败:', error);
+    }
+}
+
+// 保存AI配置
+async function saveAIConfig(event) {
+    if (event) event.preventDefault();
+    
+    const newConfig = {
+        apiUrl: document.getElementById('aiApiUrl').value.trim(),
+        apiKey: document.getElementById('aiApiKey').value.trim(),
+        model: document.getElementById('aiModel').value.trim()
+    };
+    
+    if (!newConfig.apiUrl || !newConfig.apiKey || !newConfig.model) {
+        showToast('请填写完整的AI配置信息', 'error');
+        return;
+    }
+    
+    try {
+        const result = await window.electronAPI.saveAIConfig(newConfig);
+        if (result.success) {
+            aiConfig = newConfig;
+            showToast('AI配置保存成功！', 'success');
+        } else {
+            throw new Error(result.error || '保存失败');
+        }
+    } catch (error) {
+        console.error('保存AI配置失败:', error);
+        showToast('保存AI配置失败：' + error.message, 'error');
+    }
+}
+
+// 发送AI消息
+async function sendAIMessage(message) {
+    if (!message || !message.trim()) return;
+    if (isAIThinking) return;
+    
+    // 检查配置
+    if (!aiConfig.apiUrl || !aiConfig.apiKey || !aiConfig.model) {
+        showToast('请先在设置中配置AI参数', 'error');
+        switchPage('settings');
+        return;
+    }
+    
+    const userMessage = message.trim();
+    
+    // 添加用户消息到聊天历史
+    aiChatHistory.push({
+        role: 'user',
+        content: userMessage,
+        timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    });
+    
+    // 显示用户消息
+    appendAIMessage('user', userMessage);
+    
+    // 清空输入框
+    const input = document.getElementById('aiChatInput');
+    input.value = '';
+    input.style.height = 'auto';
+    
+    // 显示AI思考中
+    isAIThinking = true;
+    const thinkingElement = appendAIThinkingMessage();
+    
+    try {
+        // 准备上下文：最近的运动数据摘要
+        const recentData = getRecentDataSummary();
+        const systemPrompt = `你是一个专业的运动健身教练。以下是用户的运动数据：\n${recentData}\n请根据这些数据回答用户的问题，提供专业的建议。`;
+        
+        // 调用AI API
+        const response = await callAI(systemPrompt, userMessage);
+        
+        // 移除思考动画
+        thinkingElement.remove();
+        
+        // 添加AI回复到聊天历史
+        aiChatHistory.push({
+            role: 'assistant',
+            content: response,
+            timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+        });
+        
+        // 显示AI回复
+        appendAIMessage('assistant', response);
+        
+    } catch (error) {
+        console.error('AI请求失败:', error);
+        thinkingElement.remove();
+        appendAIErrorMessage(error.message);
+    } finally {
+        isAIThinking = false;
+    }
+}
+
+// 调用AI API
+async function callAI(systemPrompt, userMessage) {
+    const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+    ];
+    
+    try {
+        const response = await fetch(aiConfig.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${aiConfig.apiKey}`
+            },
+            body: JSON.stringify({
+                model: aiConfig.model,
+                messages: messages,
+                temperature: 0.7,
+                max_tokens: 1000
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // 兼容不同的API响应格式
+        if (data.choices && data.choices[0]?.message?.content) {
+            return data.choices[0].message.content;
+        } else if (data.response) {
+            // Ollama格式
+            return data.response;
+        } else if (data.message) {
+            return data.message;
+        } else {
+            throw new Error('无法解析AI响应');
+        }
+    } catch (error) {
+        console.error('AI API调用错误:', error);
+        throw error;
+    }
+}
+
+// 获取最近数据摘要
+function getRecentDataSummary() {
+    if (exerciseData.length === 0) {
+        return '用户暂无运动记录。';
+    }
+    
+    // 最近30天的数据
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentData = exerciseData.filter(record => new Date(record.date) >= thirtyDaysAgo);
+    
+    if (recentData.length === 0) {
+        return '用户最近30天无运动记录。';
+    }
+    
+    // 统计数据
+    const totalRuns = recentData.filter(r => r.runDistance > 0).length;
+    const totalDistance = recentData.reduce((sum, r) => sum + (r.runDistance || 0), 0);
+    const totalDuration = recentData.reduce((sum, r) => sum + (r.runDurationSeconds || 0), 0);
+    const totalPushups = recentData.reduce((sum, r) => sum + (r.pushups || 0), 0);
+    const totalSquats = recentData.reduce((sum, r) => sum + (r.squats || 0), 0);
+    const totalMountainClimbers = recentData.reduce((sum, r) => sum + (r.mountainClimbers || 0), 0);
+    
+    let summary = `最近30天数据统计：\n`;
+    summary += `- 运动天数：${recentData.length}天\n`;
+    if (totalRuns > 0) {
+        summary += `- 跑步次数：${totalRuns}次\n`;
+        summary += `- 总跑步距离：${totalDistance.toFixed(2)}公里\n`;
+        summary += `- 总跑步时长：${Math.floor(totalDuration / 60)}分钟\n`;
+        const avgPace = totalDistance > 0 ? (totalDuration / 60 / totalDistance).toFixed(2) : 0;
+        summary += `- 平均配速：${avgPace}分钟/公里\n`;
+    }
+    if (totalPushups > 0) summary += `- 俯卧撑总数：${totalPushups}个\n`;
+    if (totalSquats > 0) summary += `- 深蹲总数：${totalSquats}个\n`;
+    if (totalMountainClimbers > 0) summary += `- 登山跑总数：${totalMountainClimbers}个\n`;
+    
+    return summary;
+}
+
+// 添加消息到聊天界面
+function appendAIMessage(role, content) {
+    const messagesContainer = document.getElementById('aiChatMessages');
+    const welcomeMessage = messagesContainer.querySelector('.ai-welcome-message');
+    if (welcomeMessage) {
+        welcomeMessage.remove();
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `ai-message ${role}`;
+    
+    const timestamp = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    
+    messageDiv.innerHTML = `
+        <div class="ai-message-avatar">
+            ${role === 'user' ? `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="7" r="4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            ` : `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `}
+        </div>
+        <div class="ai-message-content">
+            <div class="ai-message-bubble">${formatAIMessage(content)}</div>
+            <div class="ai-message-time">${timestamp}</div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// 格式化AI消息（支持完整的markdown）
+function formatAIMessage(content) {
+    // 转义HTML标签
+    content = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // 代码块 ```language\ncode\n```
+    content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`;
+    });
+    
+    // 行内代码 `code`
+    content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
+    
+    // 标题 ### Title
+    content = content.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    content = content.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    content = content.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    content = content.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    
+    // 加粗 **text**
+    content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // 斜体 *text*（避免与列表冲突）
+    content = content.replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+    
+    // 无序列表 - item 或 * item
+    content = content.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+    content = content.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    
+    // 有序列表 1. item
+    content = content.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    
+    // 链接 [text](url)
+    content = content.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    
+    // 水平线 ---
+    content = content.replace(/^---$/gm, '<hr>');
+    
+    // 引用 > text
+    content = content.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+    
+    // 表格处理（简单实现）
+    content = content.replace(/^\|(.+)\|$/gm, (match) => {
+        const cells = match.split('|').filter(cell => cell.trim());
+        const cellsHtml = cells.map(cell => `<td>${cell.trim()}</td>`).join('');
+        return `<tr>${cellsHtml}</tr>`;
+    });
+    content = content.replace(/(<tr>.*<\/tr>\n?)+/g, '<table class="ai-table">$&</table>');
+    
+    // 换行
+    content = content.replace(/\n/g, '<br>');
+    
+    return content;
+}
+
+// 添加AI思考中的动画
+function appendAIThinkingMessage() {
+    const messagesContainer = document.getElementById('aiChatMessages');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'ai-message assistant';
+    messageDiv.id = 'ai-thinking-message';
+    
+    messageDiv.innerHTML = `
+        <div class="ai-message-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="ai-message-content">
+            <div class="ai-message-bubble">
+                <div class="ai-thinking">
+                    <div class="ai-thinking-dot"></div>
+                    <div class="ai-thinking-dot"></div>
+                    <div class="ai-thinking-dot"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    return messageDiv;
+}
+
+// 添加错误消息
+function appendAIErrorMessage(errorMessage) {
+    const messagesContainer = document.getElementById('aiChatMessages');
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'ai-message assistant';
+    
+    const timestamp = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    
+    messageDiv.innerHTML = `
+        <div class="ai-message-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="ai-message-content">
+            <div class="ai-message-bubble">
+                抱歉，处理您的请求时出现错误。
+                <div class="ai-error-message">错误信息：${errorMessage}</div>
+                <div style="margin-top: 8px; font-size: 13px;">
+                    请检查：<br>
+                    1. AI配置是否正确（设置页面）<br>
+                    2. API Key是否有效<br>
+                    3. 网络连接是否正常
+                </div>
+            </div>
+            <div class="ai-message-time">${timestamp}</div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// 清空AI对话
+function clearAIChat() {
+    const confirmed = confirm('确定要清空所有对话记录吗？');
+    if (confirmed) {
+        aiChatHistory = [];
+        const messagesContainer = document.getElementById('aiChatMessages');
+        messagesContainer.innerHTML = `
+            <div class="ai-welcome-message">
+                <div class="ai-welcome-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h3>你好！我是你的AI运动助手</h3>
+                <p>我可以帮你：</p>
+                <ul>
+                    <li>📊 分析你的运动数据和趋势</li>
+                    <li>🎯 制定个性化的训练计划</li>
+                    <li>💡 根据历史数据给出改进建议</li>
+                    <li>📈 回答关于配速、频率等的问题</li>
+                </ul>
+                <p class="ai-hint">💬 试试问我："这个月的跑步数据怎么样？"</p>
+            </div>
+        `;
+        showToast('对话已清空', 'success');
+    }
+}
+
+// 绑定AI相关事件
+function bindAIEvents() {
+    // AI配置表单提交
+    const aiConfigForm = document.getElementById('aiConfigForm');
+    if (aiConfigForm) {
+        aiConfigForm.addEventListener('submit', saveAIConfig);
+    }
+    
+    // 清空对话按钮
+    const clearAIChatBtn = document.getElementById('clearAIChatBtn');
+    if (clearAIChatBtn) {
+        clearAIChatBtn.addEventListener('click', clearAIChat);
+    }
+    
+    // AI发送按钮
+    const aiSendButton = document.getElementById('aiSendButton');
+    if (aiSendButton) {
+        aiSendButton.addEventListener('click', () => {
+            const input = document.getElementById('aiChatInput');
+            if (input && input.value.trim()) {
+                sendAIMessage(input.value);
+            }
+        });
+    }
+    
+    // AI输入框 - 回车发送，Shift+回车换行
+    const aiChatInput = document.getElementById('aiChatInput');
+    if (aiChatInput) {
+        aiChatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (aiChatInput.value.trim()) {
+                    sendAIMessage(aiChatInput.value);
+                }
+            }
+        });
+        
+        // 自动调整输入框高度
+        aiChatInput.addEventListener('input', () => {
+            aiChatInput.style.height = 'auto';
+            aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, 120) + 'px';
+        });
+    }
+    
+    // 快速问题按钮
+    const quickButtons = document.querySelectorAll('.ai-quick-btn');
+    quickButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const question = button.getAttribute('data-question');
+            if (question) {
+                const input = document.getElementById('aiChatInput');
+                if (input) {
+                    input.value = question;
+                    sendAIMessage(question);
+                }
+            }
+        });
+    });
+}
+
 // 页面加载完成后初始化应用
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', () => {
+    initializeApp();
+    loadAIConfig();
+    bindAIEvents();
+});
