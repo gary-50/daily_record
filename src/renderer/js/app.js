@@ -1106,7 +1106,7 @@ async function saveAIConfig(event) {
     }
 }
 
-// 发送AI消息
+// 发送AI消息（支持流式输出）
 async function sendAIMessage(message) {
     if (!message || !message.trim()) return;
     if (isAIThinking) return;
@@ -1144,33 +1144,39 @@ async function sendAIMessage(message) {
         const recentData = getRecentDataSummary();
         const systemPrompt = `你是一个专业的运动健身教练。以下是用户的运动数据：\n${recentData}\n请根据这些数据回答用户的问题，提供专业的建议。`;
         
-        // 调用AI API
-        const response = await callAI(systemPrompt, userMessage);
-        
-        // 移除思考动画
+        // 移除思考动画，创建流式输出容器
         thinkingElement.remove();
+        const streamingMessageElement = appendAIStreamingMessage();
+        
+        let fullResponse = '';
+        
+        // 调用AI API（流式）
+        await callAIStreaming(systemPrompt, userMessage, (chunk) => {
+            fullResponse += chunk;
+            updateAIStreamingMessage(streamingMessageElement, fullResponse);
+        });
         
         // 添加AI回复到聊天历史
         aiChatHistory.push({
             role: 'assistant',
-            content: response,
+            content: fullResponse,
             timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
         });
         
-        // 显示AI回复
-        appendAIMessage('assistant', response);
+        // 标记流式消息完成
+        finalizeAIStreamingMessage(streamingMessageElement);
         
     } catch (error) {
         console.error('AI请求失败:', error);
         thinkingElement.remove();
-        appendAIErrorMessage(error.message);
+        appendAIErrorMessage(error.message, userMessage);
     } finally {
         isAIThinking = false;
     }
 }
 
-// 调用AI API
-async function callAI(systemPrompt, userMessage) {
+// 调用AI API（流式）
+async function callAIStreaming(systemPrompt, userMessage, onChunk) {
     const messages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
@@ -1187,7 +1193,8 @@ async function callAI(systemPrompt, userMessage) {
                 model: aiConfig.model,
                 messages: messages,
                 temperature: 0.7,
-                max_tokens: 1000
+                max_tokens: 4000,
+                stream: true
             })
         });
         
@@ -1196,21 +1203,49 @@ async function callAI(systemPrompt, userMessage) {
             throw new Error(errorData.error?.message || `API请求失败: ${response.status}`);
         }
         
-        const data = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
         
-        // 兼容不同的API响应格式
-        if (data.choices && data.choices[0]?.message?.content) {
-            return data.choices[0].message.content;
-        } else if (data.response) {
-            // Ollama格式
-            return data.response;
-        } else if (data.message) {
-            return data.message;
-        } else {
-            throw new Error('无法解析AI响应');
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            
+            // 保留最后一行（可能不完整）
+            buffer = lines.pop() || '';
+            
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine || trimmedLine === 'data: [DONE]') continue;
+                
+                if (trimmedLine.startsWith('data: ')) {
+                    try {
+                        const jsonStr = trimmedLine.slice(6);
+                        const data = JSON.parse(jsonStr);
+                        
+                        // OpenAI格式
+                        if (data.choices && data.choices[0]?.delta?.content) {
+                            onChunk(data.choices[0].delta.content);
+                        }
+                        // Ollama格式
+                        else if (data.message?.content) {
+                            onChunk(data.message.content);
+                        }
+                        // 其他格式
+                        else if (data.response) {
+                            onChunk(data.response);
+                        }
+                    } catch (e) {
+                        console.warn('解析流式数据失败:', e, trimmedLine);
+                    }
+                }
+            }
         }
     } catch (error) {
-        console.error('AI API调用错误:', error);
+        console.error('AI API流式调用错误:', error);
         throw error;
     }
 }
@@ -1221,25 +1256,19 @@ function getRecentDataSummary() {
         return '用户暂无运动记录。';
     }
     
-    // 最近30天的数据
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const recentData = exerciseData.filter(record => new Date(record.date) >= thirtyDaysAgo);
+    // 获取所有数据，按日期排序（从旧到新）
+    const sortedData = [...exerciseData].sort((a, b) => new Date(a.date) - new Date(b.date));
     
-    if (recentData.length === 0) {
-        return '用户最近30天无运动记录。';
-    }
+    // 统计总体数据
+    const totalRuns = sortedData.filter(r => r.runDistance > 0).length;
+    const totalDistance = sortedData.reduce((sum, r) => sum + (r.runDistance || 0), 0);
+    const totalDuration = sortedData.reduce((sum, r) => sum + (r.runDurationSeconds || 0), 0);
+    const totalPushups = sortedData.reduce((sum, r) => sum + (r.pushups || 0), 0);
+    const totalSquats = sortedData.reduce((sum, r) => sum + (r.squats || 0), 0);
+    const totalMountainClimbers = sortedData.reduce((sum, r) => sum + (r.mountainClimbers || 0), 0);
     
-    // 统计数据
-    const totalRuns = recentData.filter(r => r.runDistance > 0).length;
-    const totalDistance = recentData.reduce((sum, r) => sum + (r.runDistance || 0), 0);
-    const totalDuration = recentData.reduce((sum, r) => sum + (r.runDurationSeconds || 0), 0);
-    const totalPushups = recentData.reduce((sum, r) => sum + (r.pushups || 0), 0);
-    const totalSquats = recentData.reduce((sum, r) => sum + (r.squats || 0), 0);
-    const totalMountainClimbers = recentData.reduce((sum, r) => sum + (r.mountainClimbers || 0), 0);
-    
-    let summary = `最近30天数据统计：\n`;
-    summary += `- 运动天数：${recentData.length}天\n`;
+    let summary = `运动数据总览：\n`;
+    summary += `- 总记录天数：${sortedData.length}天\n`;
     if (totalRuns > 0) {
         summary += `- 跑步次数：${totalRuns}次\n`;
         summary += `- 总跑步距离：${totalDistance.toFixed(2)}公里\n`;
@@ -1250,6 +1279,25 @@ function getRecentDataSummary() {
     if (totalPushups > 0) summary += `- 俯卧撑总数：${totalPushups}个\n`;
     if (totalSquats > 0) summary += `- 深蹲总数：${totalSquats}个\n`;
     if (totalMountainClimbers > 0) summary += `- 登山跑总数：${totalMountainClimbers}个\n`;
+    
+    summary += `\n详细每日数据：\n`;
+    summary += `日期 | 跑步时间 | 跑步距离(km) | 跑步时长 | 配速 | 俯卧撑 | 深蹲 | 登山跑 | 体感\n`;
+    summary += `${'─'.repeat(100)}\n`;
+    
+    sortedData.forEach(record => {
+        const date = record.date;
+        const runTime = record.runTime || '-';
+        const distance = record.runDistance > 0 ? record.runDistance.toFixed(2) : '-';
+        const durationSeconds = record.runDurationSeconds || 0;
+        const duration = durationSeconds > 0 ? secondsToTime(durationSeconds) : '-';
+        const pace = calculatePace(durationSeconds, record.runDistance);
+        const pushups = record.pushups > 0 ? record.pushups : '-';
+        const squats = record.squats > 0 ? record.squats : '-';
+        const mountainClimbers = record.mountainClimbers > 0 ? record.mountainClimbers : '-';
+        const feeling = record.feeling ? record.feeling.substring(0, 30) + (record.feeling.length > 30 ? '...' : '') : '-';
+        
+        summary += `${date} | ${runTime} | ${distance} | ${duration} | ${pace} | ${pushups} | ${squats} | ${mountainClimbers} | ${feeling}\n`;
+    });
     
     return summary;
 }
@@ -1288,6 +1336,65 @@ function appendAIMessage(role, content) {
     
     messagesContainer.appendChild(messageDiv);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// 创建流式消息容器
+function appendAIStreamingMessage() {
+    const messagesContainer = document.getElementById('aiChatMessages');
+    const welcomeMessage = messagesContainer.querySelector('.ai-welcome-message');
+    if (welcomeMessage) {
+        welcomeMessage.remove();
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'ai-message assistant';
+    messageDiv.setAttribute('data-streaming', 'true');
+    
+    const timestamp = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    
+    messageDiv.innerHTML = `
+        <div class="ai-message-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="ai-message-content">
+            <div class="ai-message-bubble">
+                <span class="streaming-cursor">
+                    <span class="cursor-dot"></span>
+                    <span class="cursor-dot"></span>
+                    <span class="cursor-dot"></span>
+                </span>
+            </div>
+            <div class="ai-message-time">${timestamp}</div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    return messageDiv;
+}
+
+// 更新流式消息内容
+function updateAIStreamingMessage(messageElement, content) {
+    const bubble = messageElement.querySelector('.ai-message-bubble');
+    if (bubble) {
+        bubble.innerHTML = formatAIMessage(content) + '<span class="streaming-cursor"><span class="cursor-bar"></span></span>';
+        
+        // 自动滚动到底部
+        const messagesContainer = document.getElementById('aiChatMessages');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+}
+
+// 完成流式消息
+function finalizeAIStreamingMessage(messageElement) {
+    messageElement.removeAttribute('data-streaming');
+    const cursor = messageElement.querySelector('.streaming-cursor');
+    if (cursor) {
+        cursor.remove();
+    }
 }
 
 // 格式化AI消息（支持完整的markdown）
@@ -1332,6 +1439,10 @@ function formatAIMessage(content) {
     content = content.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
     
     // 表格处理（简单实现）
+    // 先移除表格分隔符行（如 |-----|-----|）
+    content = content.replace(/^\|[\s\-:|]+\|$/gm, '');
+    
+    // 转换表格行
     content = content.replace(/^\|(.+)\|$/gm, (match) => {
         const cells = match.split('|').filter(cell => cell.trim());
         const cellsHtml = cells.map(cell => `<td>${cell.trim()}</td>`).join('');
@@ -1339,10 +1450,56 @@ function formatAIMessage(content) {
     });
     content = content.replace(/(<tr>.*<\/tr>\n?)+/g, '<table class="ai-table">$&</table>');
     
-    // 换行
-    content = content.replace(/\n/g, '<br>');
+    // 清理块级元素周围的多余换行符，避免产生过多空白
+    // 1. 先将多个连续换行统一为最多两个
+    content = content.replace(/\n{3,}/g, '\n\n');
     
-    return content;
+    // 2. 移除块级开始标签前的换行
+    content = content.replace(/\n+(<(h[1-6]|table|ul|ol|blockquote|pre|hr)>)/g, '\n$1');
+    
+    // 3. 移除块级结束标签后的多余换行，只保留一个
+    content = content.replace(/(<\/(h[1-6]|table|ul|ol|blockquote|pre)>)\n+/g, '$1\n');
+    content = content.replace(/(<hr>)\n+/g, '$1\n');
+    
+    // 4. 移除表格内部的换行（表格行之间）
+    content = content.replace(/(<\/tr>)\n+(<tr>)/g, '$1$2');
+    
+    // 5. 按行分割，处理每一行
+    const lines = content.split('\n').filter(line => line.trim());
+    const result = [];
+    let inParagraph = false;
+    let paragraphLines = [];
+    
+    lines.forEach((line, index) => {
+        // 检查是否是块级元素
+        const isBlockStart = line.match(/^<(h[1-6]|table|ul|ol|blockquote|pre|hr)/);
+        const isBlockEnd = line.match(/<\/(h[1-6]|table|ul|ol|blockquote|pre)>$/) || line.match(/<hr>$/);
+        const isBlock = isBlockStart || isBlockEnd;
+        
+        if (isBlock) {
+            // 如果正在段落中，先结束段落
+            if (inParagraph && paragraphLines.length > 0) {
+                result.push('<p>' + paragraphLines.join('<br>') + '</p>');
+                paragraphLines = [];
+                inParagraph = false;
+            }
+            // 添加块级元素
+            result.push(line);
+        } else {
+            // 普通文本，加入段落
+            if (!inParagraph) {
+                inParagraph = true;
+            }
+            paragraphLines.push(line);
+        }
+    });
+    
+    // 处理最后剩余的段落
+    if (paragraphLines.length > 0) {
+        result.push('<p>' + paragraphLines.join('<br>') + '</p>');
+    }
+    
+    return result.join('');
 }
 
 // 添加AI思考中的动画
@@ -1377,7 +1534,7 @@ function appendAIThinkingMessage() {
 }
 
 // 添加错误消息
-function appendAIErrorMessage(errorMessage) {
+function appendAIErrorMessage(errorMessage, lastUserMessage) {
     const messagesContainer = document.getElementById('aiChatMessages');
     
     const messageDiv = document.createElement('div');
@@ -1401,6 +1558,12 @@ function appendAIErrorMessage(errorMessage) {
                     2. API Key是否有效<br>
                     3. 网络连接是否正常
                 </div>
+                <button class="ai-retry-btn" onclick="retryLastAIMessage('${encodeURIComponent(lastUserMessage)}')">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    重试
+                </button>
             </div>
             <div class="ai-message-time">${timestamp}</div>
         </div>
@@ -1410,9 +1573,28 @@ function appendAIErrorMessage(errorMessage) {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
+// 重试上一条AI消息
+function retryLastAIMessage(encodedMessage) {
+    const message = decodeURIComponent(encodedMessage);
+    // 移除最后一条用户消息和错误消息
+    if (aiChatHistory.length >= 1 && aiChatHistory[aiChatHistory.length - 1].role === 'user') {
+        aiChatHistory.pop();
+    }
+    
+    // 移除界面上的错误消息
+    const messagesContainer = document.getElementById('aiChatMessages');
+    const lastMessage = messagesContainer.lastElementChild;
+    if (lastMessage) {
+        lastMessage.remove();
+    }
+    
+    // 重新发送
+    sendAIMessage(message);
+}
+
 // 清空AI对话
-function clearAIChat() {
-    const confirmed = confirm('确定要清空所有对话记录吗？');
+async function clearAIChat() {
+    const confirmed = await showConfirm('确定要清空所有对话记录吗？', '清空对话');
     if (confirmed) {
         aiChatHistory = [];
         const messagesContainer = document.getElementById('aiChatMessages');

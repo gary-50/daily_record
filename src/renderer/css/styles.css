@@ -1982,13 +1982,57 @@ button {
 }
 
 /* Markdown 内容样式 */
+.ai-message-bubble p {
+    margin: 6px 0;
+}
+
+.ai-message-bubble p:first-child {
+    margin-top: 0;
+}
+
+.ai-message-bubble p:last-child {
+    margin-bottom: 0;
+}
+
+/* 段落和块级元素相邻时减少间距 */
+.ai-message-bubble p + .ai-table,
+.ai-message-bubble p + h1,
+.ai-message-bubble p + h2,
+.ai-message-bubble p + h3,
+.ai-message-bubble p + h4,
+.ai-message-bubble p + ul,
+.ai-message-bubble p + ol,
+.ai-message-bubble p + blockquote,
+.ai-message-bubble p + pre {
+    margin-top: 8px;
+}
+
+.ai-message-bubble .ai-table + p,
+.ai-message-bubble h1 + p,
+.ai-message-bubble h2 + p,
+.ai-message-bubble h3 + p,
+.ai-message-bubble h4 + p,
+.ai-message-bubble ul + p,
+.ai-message-bubble ol + p,
+.ai-message-bubble blockquote + p,
+.ai-message-bubble pre + p {
+    margin-top: 8px;
+}
+
 .ai-message-bubble h1,
 .ai-message-bubble h2,
 .ai-message-bubble h3,
 .ai-message-bubble h4 {
-    margin: 12px 0 8px 0;
+    margin: 16px 0 8px 0;
     font-weight: 600;
     line-height: 1.3;
+}
+
+.ai-message-bubble h1:first-child,
+.ai-message-bubble h2:first-child,
+.ai-message-bubble h3:first-child,
+.ai-message-bubble h4:first-child {
+    margin-top: 0;
 }
 
 .ai-message-bubble h1 { font-size: 20px; }
@@ -1998,7 +2042,7 @@ button {
 
 .ai-message-bubble ul,
 .ai-message-bubble ol {
-    margin: 8px 0;
+    margin: 10px 0;
     padding-left: 24px;
 }
 
@@ -2019,7 +2063,7 @@ button {
     padding: 12px;
     border-radius: 6px;
     overflow-x: auto;
-    margin: 8px 0;
+    margin: 12px 0;
 }
 
 .ai-message-bubble pre code {
@@ -2031,7 +2075,7 @@ button {
 .ai-message-bubble blockquote {
     border-left: 3px solid var(--primary-color);
     padding-left: 12px;
-    margin: 8px 0;
+    margin: 12px 0;
     color: var(--text-secondary);
     font-style: italic;
 }
@@ -2039,7 +2083,7 @@ button {
 .ai-message-bubble hr {
     border: none;
     border-top: 1px solid var(--border-color);
-    margin: 12px 0;
+    margin: 16px 0;
 }
 
 .ai-message-bubble a {
@@ -2247,6 +2291,101 @@ button {
     margin-top: 8px;
 }
 
+.ai-retry-btn {
+    margin-top: 12px;
+    padding: 10px 18px;
+    background: white;
+    color: #5a6c7d;
+    border: 2px solid #e0e6ed;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-retry-btn:hover {
+    background: #f8f9fb;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.ai-retry-btn:active {
+    transform: translateY(0);
+}
+
+.ai-retry-btn .btn-icon {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2.5;
+}
+
+/* 流式输出光标 */
+.streaming-cursor {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+/* 初始加载时的三点动画 */
+.cursor-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    animation: dotPulse 1.4s infinite ease-in-out;
+}
+
+.cursor-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.cursor-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.cursor-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+    0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* 打字时的竖线光标 */
+.cursor-bar {
+    display: inline-block;
+    width: 2px;
+    height: 16px;
+    background: linear-gradient(180deg, var(--primary-color) 0%, rgba(102, 126, 234, 0.5) 100%);
+    border-radius: 1px;
+    animation: blink 1s infinite;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+}
+
+@keyframes blink {
+    0%, 49% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
+}
+
 /* 深色模式适配 */
 [data-theme="dark"] .ai-welcome-message {
     color: var(--text-secondary);
@@ -2298,6 +2437,26 @@ button {
     background: #3a1f1f;
     border-color: #5a2a2a;
     color: #ff6b6b;
+}
+
+[data-theme="dark"] .ai-retry-btn {
+    background: #1e1f20;
+    border-color: #3a3b3c;
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .ai-retry-btn:hover {
+    background: #242526;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+[data-theme="dark"] .cursor-dot {
+    background: var(--primary-color);
+}
+
+[data-theme="dark"] .cursor-bar {
+    background: linear-gradient(180deg, var(--primary-color) 0%, rgba(102, 126, 234, 0.3) 100%);
 }
 
 /* 深色模式下的 Markdown 样式 */

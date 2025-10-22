@@ -1,6 +1,6 @@
 {
   "name": "exercise-tracker-electron",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "体育锻炼记录系统 - Electron版本",
   "main": "src/main/main.js",
   "scripts": {
