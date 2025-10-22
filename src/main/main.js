@@ -4,6 +4,7 @@ const fs = require('fs');
 
 const CONFIG_FILE = path.join(app.getPath('userData'), 'config.json');
 let DATA_FILE = path.join(app.getPath('userData'), 'exercise-data.json');
+let DIET_DATA_FILE = path.join(app.getPath('userData'), 'diet-data.json');
 
 function readJSONFile(filePath, defaultValue = []) {
     try {
@@ -31,10 +32,15 @@ function writeJSONFile(filePath, data) {
     }
 }
 
+function setDataDirectory(dir) {
+    DATA_FILE = path.join(dir, 'exercise-data.json');
+    DIET_DATA_FILE = path.join(dir, 'diet-data.json');
+}
+
 function loadConfig() {
     const config = readJSONFile(CONFIG_FILE, {});
-    if (config.dataFilePath && fs.existsSync(path.dirname(config.dataFilePath))) {
-        DATA_FILE = config.dataFilePath;
+    if (config.dataDirectory && fs.existsSync(config.dataDirectory)) {
+        setDataDirectory(config.dataDirectory);
     }
 }
 
@@ -45,6 +51,9 @@ function saveConfig(config) {
 function ensureDataFile() {
     if (!fs.existsSync(DATA_FILE)) {
         writeJSONFile(DATA_FILE, []);
+    }
+    if (!fs.existsSync(DIET_DATA_FILE)) {
+        writeJSONFile(DIET_DATA_FILE, []);
     }
 }
 
@@ -99,39 +108,47 @@ app.on('window-all-closed', () => {
     }
 });
 
+async function handleSaveRecord(filePath, record, errorPrefix) {
+    try {
+        const records = readJSONFile(filePath, []);
+        record.id = Date.now();
+        records.push(record);
+        records.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (writeJSONFile(filePath, records)) {
+            return { success: true, record };
+        }
+        throw new Error('写入文件失败');
+    } catch (error) {
+        console.error(`${errorPrefix}:`, error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function handleDeleteRecord(filePath, id, errorPrefix) {
+    try {
+        const records = readJSONFile(filePath, []).filter(record => record.id !== id);
+        
+        if (writeJSONFile(filePath, records)) {
+            return { success: true };
+        }
+        throw new Error('写入文件失败');
+    } catch (error) {
+        console.error(`${errorPrefix}:`, error);
+        return { success: false, error: error.message };
+    }
+}
+
 ipcMain.handle('get-records', async () => {
     return readJSONFile(DATA_FILE, []);
 });
 
 ipcMain.handle('save-record', async (event, record) => {
-    try {
-        const records = readJSONFile(DATA_FILE, []);
-        record.id = Date.now();
-        records.push(record);
-        records.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        if (writeJSONFile(DATA_FILE, records)) {
-            return { success: true, record };
-        }
-        throw new Error('写入文件失败');
-    } catch (error) {
-        console.error('保存数据失败:', error);
-        return { success: false, error: error.message };
-    }
+    return handleSaveRecord(DATA_FILE, record, '保存数据失败');
 });
 
 ipcMain.handle('delete-record', async (event, id) => {
-    try {
-        const records = readJSONFile(DATA_FILE, []).filter(record => record.id !== id);
-        
-        if (writeJSONFile(DATA_FILE, records)) {
-            return { success: true };
-        }
-        throw new Error('写入文件失败');
-    } catch (error) {
-        console.error('删除数据失败:', error);
-        return { success: false, error: error.message };
-    }
+    return handleDeleteRecord(DATA_FILE, id, '删除数据失败');
 });
 
 // IPC 处理器 - 获取数据文件路径
@@ -139,59 +156,80 @@ ipcMain.handle('get-data-path', async () => {
     return DATA_FILE;
 });
 
-// IPC 处理器 - 选择数据文件保存位置
+// IPC 处理器 - 选择数据文件夹保存位置
 ipcMain.handle('choose-data-path', async () => {
-    const result = await dialog.showSaveDialog({
-        title: '选择数据文件保存位置',
-        defaultPath: DATA_FILE,
-        filters: [
-            { name: 'JSON 文件', extensions: ['json'] }
-        ],
-        properties: ['createDirectory', 'showOverwriteConfirmation']
+    const result = await dialog.showOpenDialog({
+        title: '选择数据文件夹保存位置',
+        defaultPath: path.dirname(DATA_FILE),
+        properties: ['openDirectory', 'createDirectory']
     });
 
-    if (!result.canceled && result.filePath) {
-        return result.filePath;
+    if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
+        return result.filePaths[0];
     }
     return null;
 });
 
-ipcMain.handle('set-data-path', async (event, newPath) => {
-    const oldPath = DATA_FILE;
+ipcMain.handle('set-data-path', async (event, newDirectory) => {
+    const oldExerciseFile = DATA_FILE;
+    const oldDietFile = DIET_DATA_FILE;
     try {
-        const targetDir = path.dirname(newPath);
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
+        if (!fs.existsSync(newDirectory)) {
+            fs.mkdirSync(newDirectory, { recursive: true });
         }
 
-        if (!fs.existsSync(newPath)) {
+        const newExerciseFile = path.join(newDirectory, 'exercise-data.json');
+        const newDietFile = path.join(newDirectory, 'diet-data.json');
+
+        if (!fs.existsSync(newExerciseFile)) {
             if (fs.existsSync(DATA_FILE)) {
-                fs.copyFileSync(DATA_FILE, newPath);
+                fs.copyFileSync(DATA_FILE, newExerciseFile);
             } else {
-                writeJSONFile(newPath, []);
+                writeJSONFile(newExerciseFile, []);
             }
         }
 
-        DATA_FILE = newPath;
+        if (!fs.existsSync(newDietFile)) {
+            if (fs.existsSync(DIET_DATA_FILE)) {
+                fs.copyFileSync(DIET_DATA_FILE, newDietFile);
+            } else {
+                writeJSONFile(newDietFile, []);
+            }
+        }
 
-        if (saveConfig({ dataFilePath: newPath })) {
-            return { success: true, oldPath, newPath };
+        setDataDirectory(newDirectory);
+
+        if (saveConfig({ dataDirectory: newDirectory })) {
+            return { 
+                success: true, 
+                newPath: newDirectory,
+                exerciseFile: DATA_FILE,
+                dietFile: DIET_DATA_FILE
+            };
         }
         
-        DATA_FILE = oldPath;
+        DATA_FILE = oldExerciseFile;
+        DIET_DATA_FILE = oldDietFile;
         return { success: false, error: '保存配置失败' };
     } catch (error) {
-        console.error('设置数据文件路径失败:', error);
-        DATA_FILE = oldPath;
+        console.error('设置数据文件夹路径失败:', error);
+        DATA_FILE = oldExerciseFile;
+        DIET_DATA_FILE = oldDietFile;
         return { success: false, error: error.message };
     }
 });
 
 // IPC 处理器 - 获取当前配置
 ipcMain.handle('get-config', async () => {
+    const config = readJSONFile(CONFIG_FILE, {});
+    const isDefaultPath = !config.dataDirectory;
+    const dataDirectory = config.dataDirectory || app.getPath('userData');
+    
     return {
-        dataFilePath: DATA_FILE,
-        defaultPath: path.join(app.getPath('userData'), 'exercise-data.json')
+        dataDirectory: dataDirectory,
+        exerciseFile: DATA_FILE,
+        dietFile: DIET_DATA_FILE,
+        isDefaultPath: isDefaultPath
     };
 });
 
@@ -227,4 +265,19 @@ ipcMain.handle('save-ai-config', async (event, aiConfig) => {
         console.error('保存AI配置失败:', error);
         return { success: false, error: error.message };
     }
+});
+
+// IPC 处理器 - 获取饮食记录
+ipcMain.handle('get-diet-records', async () => {
+    return readJSONFile(DIET_DATA_FILE, []);
+});
+
+// IPC 处理器 - 保存饮食记录
+ipcMain.handle('save-diet-record', async (event, record) => {
+    return handleSaveRecord(DIET_DATA_FILE, record, '保存饮食数据失败');
+});
+
+// IPC 处理器 - 删除饮食记录
+ipcMain.handle('delete-diet-record', async (event, id) => {
+    return handleDeleteRecord(DIET_DATA_FILE, id, '删除饮食数据失败');
 });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>体育锻炼记录系统</title>
+    <title>日常记录系统</title>
 
     <!-- 本地CSS样式 -->
     <link rel="stylesheet" href="../../node_modules/chart.js/dist/chart.min.css">
@@ -16,7 +16,7 @@
     <!-- 侧边栏导航 -->
     <nav class="sidebar">
         <div class="sidebar-header">
-            <h1>锻炼记录</h1>
+            <h1>日常记录</h1>
         </div>
         <ul class="nav-menu">
             <li class="nav-item active" data-page="record">
@@ -51,45 +51,6 @@
                 <span>设置</span>
             </li>
         </ul>
-        
-        <!-- 主题切换器 -->
-        <div class="theme-switcher">
-            <div class="theme-section">
-                <div class="theme-section-title">主题</div>
-                <div class="theme-mode-toggle">
-                    <button class="theme-mode-btn active" data-mode="light">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="5" stroke-width="2"/>
-                            <line x1="12" y1="1" x2="12" y2="3" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="12" y1="21" x2="12" y2="23" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="1" y1="12" x2="3" y2="12" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="21" y1="12" x2="23" y2="12" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke-width="2" stroke-linecap="round"/>
-                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                        浅色
-                    </button>
-                    <button class="theme-mode-btn" data-mode="dark">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        深色
-                    </button>
-                </div>
-            </div>
-            <div class="theme-section">
-                <div class="theme-section-title">颜色</div>
-                <div class="theme-colors">
-                    <button class="theme-color-btn active" data-color="purple" title="紫色"></button>
-                    <button class="theme-color-btn" data-color="blue" title="蓝色"></button>
-                    <button class="theme-color-btn" data-color="green" title="绿色"></button>
-                    <button class="theme-color-btn" data-color="orange" title="橙色"></button>
-                    <button class="theme-color-btn" data-color="pink" title="粉色"></button>
-                </div>
-            </div>
-        </div>
     </nav>
 
     <!-- 主内容区域 -->
@@ -97,11 +58,28 @@
         <!-- 添加记录页面 -->
         <div class="page active" id="recordPage">
             <div class="page-header">
-                <h2>添加锻炼记录</h2>
-                <p class="page-subtitle">记录您的每一次锻炼</p>
+                <h2>添加记录</h2>
+                <p class="page-subtitle">记录您的日常生活</p>
             </div>
 
-            <div class="content-card">
+            <!-- Tab切换 -->
+            <div class="tab-container" style="margin-bottom: 1.5rem;">
+                <button class="tab-btn active" data-record-tab="exercise">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M13.5 2c-1.5 0-2.8 1.2-2.8 2.8s1.2 2.8 2.8 2.8 2.8-1.2 2.8-2.8S15 2 13.5 2zM6.5 8l2 3.5L7 22h2l1.7-7.3L13 17v5h2v-6l-2.8-3 .5-2c1.5 1.5 3.5 2.5 6 2.5v-2c-2 0-3.5-.8-4.5-2.2l-.8-1.2c-.5-.7-1.2-1-2-1-.3 0-.5.1-.8.1l-5.5 3V13h2V9.5z" stroke-width="0.5"/>
+                    </svg>
+                    锻炼记录
+                </button>
+                <button class="tab-btn" data-record-tab="diet">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    饮食记录
+                </button>
+            </div>
+
+            <!-- 锻炼记录表单 -->
+            <div class="content-card record-tab-content" id="exerciseRecordTab">
                 <form id="exerciseForm">
                     <div class="form-section">
                         <h3 class="section-title">基本信息</h3>
@@ -165,16 +143,109 @@
                     </button>
                 </form>
             </div>
+
+            <!-- 饮食记录表单 -->
+            <div class="content-card record-tab-content" id="dietRecordTab" style="display: none;">
+                <form id="dietForm">
+                    <div class="form-section">
+                        <h3 class="section-title">基本信息</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="dietDate">日期</label>
+                                <input type="date" id="dietDate" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">早餐</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="breakfastTime">时间</label>
+                                <input type="time" id="breakfastTime">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="breakfastFoods">食物</label>
+                                <input type="text" id="breakfastFoods" placeholder="例如：牛奶、鸡蛋、面包">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="breakfastNotes">备注</label>
+                            <textarea id="breakfastNotes" placeholder="记录早餐的备注..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">午餐</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="lunchTime">时间</label>
+                                <input type="time" id="lunchTime">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="lunchFoods">食物</label>
+                                <input type="text" id="lunchFoods" placeholder="例如：米饭、鸡肉、青菜">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="lunchNotes">备注</label>
+                            <textarea id="lunchNotes" placeholder="记录午餐的备注..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">晚餐</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="dinnerTime">时间</label>
+                                <input type="time" id="dinnerTime">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="dinnerFoods">食物</label>
+                                <input type="text" id="dinnerFoods" placeholder="例如：面条、青菜">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="dinnerNotes">备注</label>
+                            <textarea id="dinnerNotes" placeholder="记录晚餐的备注..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        保存记录
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- 历史记录页面 -->
         <div class="page" id="historyPage">
             <div class="page-header">
                 <h2>历史记录</h2>
-                <p class="page-subtitle">查看和管理您的锻炼历史</p>
+                <p class="page-subtitle">查看和管理您的历史记录</p>
             </div>
 
-            <div class="content-card">
+            <!-- Tab切换 -->
+            <div class="tab-container" style="margin-bottom: 1.5rem;">
+                <button class="tab-btn active" data-history-tab="exercise">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M13.5 2c-1.5 0-2.8 1.2-2.8 2.8s1.2 2.8 2.8 2.8 2.8-1.2 2.8-2.8S15 2 13.5 2zM6.5 8l2 3.5L7 22h2l1.7-7.3L13 17v5h2v-6l-2.8-3 .5-2c1.5 1.5 3.5 2.5 6 2.5v-2c-2 0-3.5-.8-4.5-2.2l-.8-1.2c-.5-.7-1.2-1-2-1-.3 0-.5.1-.8.1l-5.5 3V13h2V9.5z" stroke-width="0.5"/>
+                    </svg>
+                    锻炼记录
+                </button>
+                <button class="tab-btn" data-history-tab="diet">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    饮食记录
+                </button>
+            </div>
+
+            <!-- 锻炼历史记录 -->
+            <div class="content-card history-tab-content" id="exerciseHistoryTab">
                 <!-- 搜索框 -->
                 <div class="search-box">
                     <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -257,6 +328,29 @@
                         <tbody id="recordsBody"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- 饮食历史记录 -->
+            <div class="content-card history-tab-content" id="dietHistoryTab" style="display: none;">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                        <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <input type="text" class="search-input" id="dietRecordSearch" placeholder="搜索日期、食物...">
+                </div>
+
+                <div class="empty-state" id="dietEmptyState" style="display: none;">
+                    <div class="empty-state-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>还没有饮食记录</h3>
+                    <p>开始记录您的第一餐吧！</p>
+                </div>
+
+                <div class="diet-cards-container" id="dietCardsContainer"></div>
             </div>
         </div>
 
@@ -431,6 +525,28 @@
                 </div>
 
                 <div class="ai-chat-input-container">
+                    <div class="ai-data-selector">
+                        <label class="ai-data-selector-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 16px; height: 16px;">
+                                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            发送数据：
+                        </label>
+                        <div class="ai-data-options">
+                            <label class="ai-data-option">
+                                <input type="radio" name="aiDataType" value="all" checked>
+                                <span>全部</span>
+                            </label>
+                            <label class="ai-data-option">
+                                <input type="radio" name="aiDataType" value="exercise">
+                                <span>锻炼</span>
+                            </label>
+                            <label class="ai-data-option">
+                                <input type="radio" name="aiDataType" value="diet">
+                                <span>饮食</span>
+                            </label>
+                        </div>
+                    </div>
                     <div class="ai-chat-input-wrapper">
                         <textarea 
                             id="aiChatInput" 
@@ -438,9 +554,10 @@
                             placeholder="输入你的问题，例如：帮我分析一下最近的跑步数据..." 
                             rows="1"></textarea>
                         <button id="aiSendButton" class="ai-send-button" title="发送消息">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <svg viewBox="0 0 24 24" fill="white">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                             </svg>
+                            <span>发送</span>
                         </button>
                     </div>
                     <div class="ai-quick-questions">
@@ -461,6 +578,54 @@
             </div>
 
             <div class="content-card">
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004 4h4a4 4 0 004-4v-12a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 01-4 4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        外观设置
+                    </h3>
+                    
+                    <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 1rem;">
+                        <div class="theme-setting-group">
+                            <label class="settings-label">主题模式</label>
+                            <div class="theme-mode-toggle">
+                                <button class="theme-mode-btn active" data-mode="light">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="5" stroke-width="2"/>
+                                        <line x1="12" y1="1" x2="12" y2="3" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="12" y1="21" x2="12" y2="23" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="1" y1="12" x2="3" y2="12" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="21" y1="12" x2="23" y2="12" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke-width="2" stroke-linecap="round"/>
+                                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke-width="2" stroke-linecap="round"/>
+                                    </svg>
+                                    浅色
+                                </button>
+                                <button class="theme-mode-btn" data-mode="dark">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    深色
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="theme-setting-group">
+                            <label class="settings-label">主题颜色</label>
+                            <div class="theme-colors">
+                                <button class="theme-color-btn active" data-color="purple" title="紫色"></button>
+                                <button class="theme-color-btn" data-color="blue" title="蓝色"></button>
+                                <button class="theme-color-btn" data-color="green" title="绿色"></button>
+                                <button class="theme-color-btn" data-color="orange" title="橙色"></button>
+                                <button class="theme-color-btn" data-color="pink" title="粉色"></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -508,21 +673,22 @@
                     </h3>
                     <div class="settings-item">
                         <div class="settings-description">
-                            <p class="settings-label">当前数据文件路径</p>
-                            <p class="settings-value" id="currentDataPath">加载中...</p>
+                            <p class="settings-label">当前数据存储目录</p>
+                            <p class="settings-value" id="currentDataPath" style="cursor: help;" title="鼠标悬停查看详细文件路径">加载中...</p>
+                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">此目录包含锻炼记录和饮食记录两个数据文件</small>
                         </div>
                         <button class="btn-secondary" id="changeDataPathBtn">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            更改存储位置
+                            更改存储目录
                         </button>
                     </div>
                     <div class="settings-hint">
                         <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        <p>更改数据存储位置后，当前数据会被复制到新位置。建议选择一个安全且方便备份的位置。</p>
+                        <p>更改数据存储目录后，所有数据文件（锻炼记录和饮食记录）都会被复制到新目录。建议选择一个安全且方便备份的位置。</p>
                     </div>
                 </div>
 
@@ -534,9 +700,9 @@
                         关于
                     </h3>
                     <div class="settings-about">
-                        <h4>体育锻炼记录系统</h4>
-                        <p>版本：2.1.1</p>
-                        <p>基于 Electron 的桌面应用，用于记录和管理体育锻炼数据。</p>
+                        <h4>日常记录系统</h4>
+                        <p>版本：3.0.0</p>
+                        <p>基于 Electron 的桌面应用，用于记录和管理日常生活数据，包括锻炼和饮食。</p>
                     </div>
                 </div>
             </div>

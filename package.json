@@ -1,7 +1,7 @@
 {
   "name": "exercise-tracker-electron",
-  "version": "2.1.1",
-  "description": "体育锻炼记录系统 - Electron版本",
+  "version": "3.0.0",
+  "description": "日常记录系统 - 运动与饮食 - Electron版本",
   "main": "src/main/main.js",
   "scripts": {
     "start": "electron .",

@@ -1,29 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// 暴露安全的API给渲染进程
+const invoke = (channel) => () => ipcRenderer.invoke(channel);
+const invokeWith = (channel) => (data) => ipcRenderer.invoke(channel, data);
+
 contextBridge.exposeInMainWorld('electronAPI', {
-    // 获取所有记录
-    getRecords: () => ipcRenderer.invoke('get-records'),
-
-    // 保存新记录
-    saveRecord: (record) => ipcRenderer.invoke('save-record', record),
-
-    // 删除记录
-    deleteRecord: (id) => ipcRenderer.invoke('delete-record', id),
-
-    // 获取数据文件路径
-    getDataPath: () => ipcRenderer.invoke('get-data-path'),
-
-    // 选择数据文件保存位置
-    chooseDataPath: () => ipcRenderer.invoke('choose-data-path'),
-
-    // 设置数据文件路径
-    setDataPath: (newPath) => ipcRenderer.invoke('set-data-path', newPath),
-
-    // 获取当前配置
-    getConfig: () => ipcRenderer.invoke('get-config'),
-
-    // AI 配置相关
-    getAIConfig: () => ipcRenderer.invoke('get-ai-config'),
-    saveAIConfig: (config) => ipcRenderer.invoke('save-ai-config', config)
+    getRecords: invoke('get-records'),
+    saveRecord: invokeWith('save-record'),
+    deleteRecord: invokeWith('delete-record'),
+    getDataPath: invoke('get-data-path'),
+    chooseDataPath: invoke('choose-data-path'),
+    setDataPath: invokeWith('set-data-path'),
+    getConfig: invoke('get-config'),
+    getAIConfig: invoke('get-ai-config'),
+    saveAIConfig: invokeWith('save-ai-config'),
+    getDietRecords: invoke('get-diet-records'),
+    saveDietRecord: invokeWith('save-diet-record'),
+    deleteDietRecord: invokeWith('delete-diet-record')
 });

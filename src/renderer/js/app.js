@@ -8,6 +8,8 @@ const CONSTANTS = {
 
 let exerciseData = [];
 let filteredData = [];
+let dietData = [];
+let filteredDietData = [];
 let currentSortColumn = null;
 let currentSortDirection = 'desc';
 const charts = {
@@ -46,6 +48,13 @@ function cacheDOMElements() {
         running: document.getElementById('runningChartWrapper')
     };
     
+    // 饮食记录相关
+    DOM.dietForm = document.getElementById('dietForm');
+    DOM.dietDate = document.getElementById('dietDate');
+    DOM.dietRecordSearch = document.getElementById('dietRecordSearch');
+    DOM.dietEmptyState = document.getElementById('dietEmptyState');
+    DOM.dietCardsContainer = document.getElementById('dietCardsContainer');
+    
     // 初始化：只显示配速图表
     DOM.chartWrappers.pace.style.display = 'block';
     DOM.chartWrappers.strength.style.display = 'none';
@@ -57,6 +66,7 @@ function initializeApp() {
     
     const today = new Date();
     DOM.date.valueAsDate = today;
+    DOM.dietDate.valueAsDate = today;
     DOM.endDate.valueAsDate = today;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - CONSTANTS.DEFAULT_DATE_RANGE);
@@ -65,6 +75,7 @@ function initializeApp() {
     initTheme();
     bindEventListeners();
     loadData();
+    loadDietData();
     loadSettings();
 }
 
@@ -101,11 +112,13 @@ function switchPage(pageName) {
         }, 150);
     } else if (pageName === 'history') {
         setTimeout(updateEmptyStates, 150);
+        setTimeout(updateDietEmptyState, 150);
     }
 }
 
 function bindEventListeners() {
     DOM.exerciseForm.addEventListener('submit', handleFormSubmit);
+    DOM.dietForm.addEventListener('submit', handleDietFormSubmit);
 
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function() {
@@ -115,8 +128,7 @@ function bindEventListeners() {
 
     document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+            setActiveClass('.tab-btn[data-tab]', this);
             currentTab = this.dataset.tab;
             updateCharts();
         });
@@ -124,8 +136,7 @@ function bindEventListeners() {
 
     document.querySelectorAll('.tab-btn[data-chart]').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.tab-btn[data-chart]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+            setActiveClass('.tab-btn[data-chart]', this);
             currentChartType = this.dataset.chart;
             updateCharts();
         });
@@ -135,12 +146,7 @@ function bindEventListeners() {
     document.querySelectorAll('.chart-option-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const chartType = this.dataset.chart;
-            
-            // 移除所有按钮的 active 类
-            document.querySelectorAll('.chart-option-btn').forEach(b => b.classList.remove('active'));
-            
-            // 添加当前按钮的 active 类
-            this.classList.add('active');
+            setActiveClass('.chart-option-btn', this);
             
             // 隐藏所有图表
             Object.values(DOM.chartWrappers).forEach(wrapper => {
@@ -166,16 +172,14 @@ function bindEventListeners() {
     // 主题切换事件
     document.querySelectorAll('.theme-mode-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.theme-mode-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+            setActiveClass('.theme-mode-btn', this);
             setTheme(this.dataset.mode);
         });
     });
 
     document.querySelectorAll('.theme-color-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.theme-color-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+            setActiveClass('.theme-color-btn', this);
             setThemeColor(this.dataset.color);
         });
     });
@@ -184,11 +188,52 @@ function bindEventListeners() {
     if (DOM.recordSearch) {
         DOM.recordSearch.addEventListener('input', handleSearch);
     }
+    if (DOM.dietRecordSearch) {
+        DOM.dietRecordSearch.addEventListener('input', handleDietSearch);
+    }
 
     // 表格排序事件
     document.querySelectorAll('.records-table th.sortable').forEach(th => {
         th.addEventListener('click', function() {
             handleSort(this.dataset.sort);
+        });
+    });
+
+    // Record页面tab切换
+    document.querySelectorAll('[data-record-tab]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.dataset.recordTab;
+            setActiveClass('[data-record-tab]', this);
+            
+            // 切换tab内容
+            document.querySelectorAll('.record-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            if (tabName === 'exercise') {
+                document.getElementById('exerciseRecordTab').style.display = 'block';
+            } else if (tabName === 'diet') {
+                document.getElementById('dietRecordTab').style.display = 'block';
+            }
+        });
+    });
+
+    // History页面tab切换
+    document.querySelectorAll('[data-history-tab]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.dataset.historyTab;
+            setActiveClass('[data-history-tab]', this);
+            
+            // 切换tab内容
+            document.querySelectorAll('.history-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            if (tabName === 'exercise') {
+                document.getElementById('exerciseHistoryTab').style.display = 'block';
+            } else if (tabName === 'diet') {
+                document.getElementById('dietHistoryTab').style.display = 'block';
+            }
         });
     });
 }
@@ -209,6 +254,18 @@ async function loadData() {
         console.error('加载数据错误:', error);
         showToast('加载数据失败', 'error');
         hideSkeletonLoading();
+    }
+}
+
+async function loadDietData() {
+    try {
+        dietData = await window.electronAPI.getDietRecords();
+        filteredDietData = [...dietData];
+        displayDietRecords();
+        updateDietEmptyState();
+    } catch (error) {
+        console.error('加载饮食数据错误:', error);
+        showToast('加载饮食数据失败', 'error');
     }
 }
 
@@ -355,33 +412,26 @@ function calculatePace(durationSeconds, distanceKm) {
     return `${paceMinutes}'${String(paceSecondsRemainder).padStart(2, '0')}"`;
 }
 
-async function handleFormSubmit(e) {
-    e.preventDefault();
+function setActiveClass(selector, activeElement) {
+    document.querySelectorAll(selector).forEach(el => el.classList.remove('active'));
+    if (activeElement) activeElement.classList.add('active');
+}
 
+async function submitFormWithFeedback(e, getRecordData, saveMethod, loadMethod, successMsg) {
+    e.preventDefault();
     const submitButton = e.target.querySelector('button[type="submit"]');
     submitButton.disabled = true;
-    const originalButtonText = submitButton.innerHTML;
+    const originalText = submitButton.innerHTML;
     submitButton.innerHTML = '<span>保存中...</span>';
 
-    const record = {
-        date: DOM.date.value,
-        runTime: document.getElementById('runTime').value || '',
-        runDurationSeconds: timeToSeconds(document.getElementById('runDuration').value),
-        runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
-        pushups: parseInt(document.getElementById('pushups').value) || 0,
-        squats: parseInt(document.getElementById('squats').value) || 0,
-        mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
-        feeling: document.getElementById('feeling').value
-    };
-
     try {
-        const result = await window.electronAPI.saveRecord(record);
+        const record = getRecordData();
+        const result = await saveMethod(record);
 
         if (result.success) {
-            await loadData();
+            await loadMethod();
             e.target.reset();
-            DOM.date.valueAsDate = new Date();
-            showToast('记录已保存！', 'success');
+            showToast(successMsg, 'success');
         } else {
             throw new Error(result.error || '保存失败');
         }
@@ -390,8 +440,56 @@ async function handleFormSubmit(e) {
         showToast('保存失败：' + error.message, 'error');
     } finally {
         submitButton.disabled = false;
-        submitButton.innerHTML = originalButtonText;
+        submitButton.innerHTML = originalText;
     }
+}
+
+async function handleFormSubmit(e) {
+    await submitFormWithFeedback(
+        e,
+        () => ({
+            date: DOM.date.value,
+            runTime: document.getElementById('runTime').value || '',
+            runDurationSeconds: timeToSeconds(document.getElementById('runDuration').value),
+            runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
+            pushups: parseInt(document.getElementById('pushups').value) || 0,
+            squats: parseInt(document.getElementById('squats').value) || 0,
+            mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
+            feeling: document.getElementById('feeling').value
+        }),
+        window.electronAPI.saveRecord,
+        loadData,
+        '记录已保存！'
+    );
+    DOM.date.valueAsDate = new Date();
+}
+
+async function handleDietFormSubmit(e) {
+    await submitFormWithFeedback(
+        e,
+        () => ({
+            date: DOM.dietDate.value,
+            breakfast: {
+                time: document.getElementById('breakfastTime').value || '',
+                foods: document.getElementById('breakfastFoods').value || '',
+                notes: document.getElementById('breakfastNotes').value || ''
+            },
+            lunch: {
+                time: document.getElementById('lunchTime').value || '',
+                foods: document.getElementById('lunchFoods').value || '',
+                notes: document.getElementById('lunchNotes').value || ''
+            },
+            dinner: {
+                time: document.getElementById('dinnerTime').value || '',
+                foods: document.getElementById('dinnerFoods').value || '',
+                notes: document.getElementById('dinnerNotes').value || ''
+            }
+        }),
+        window.electronAPI.saveDietRecord,
+        loadDietData,
+        '饮食记录已保存！'
+    );
+    DOM.dietDate.valueAsDate = new Date();
 }
 
 function displayRecords() {
@@ -508,6 +606,186 @@ async function deleteRecord(id) {
             console.error('删除数据错误:', error);
             showToast('删除失败：' + error.message, 'error');
         }
+    }
+}
+
+function displayDietRecords() {
+    const container = document.getElementById('dietCardsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+
+    if (filteredDietData.length === 0) {
+        // 如果有原始数据但过滤后为空，说明是搜索无结果
+        if (dietData.length > 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: #666;">
+                    <svg style="width: 64px; height: 64px; margin: 0 auto 1rem; opacity: 0.3;" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                        <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <p style="font-size: 1.1rem; margin: 0;">未找到匹配的记录</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem; opacity: 0.7;">尝试使用其他关键词搜索</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
+    let dataToDisplay = [...filteredDietData];
+    dataToDisplay.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    dataToDisplay.forEach(record => {
+        const card = document.createElement('div');
+        card.className = 'diet-card';
+        
+        // 格式化日期显示
+        const dateObj = new Date(record.date + 'T00:00:00');
+        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const weekday = weekdays[dateObj.getDay()];
+        
+        card.innerHTML = `
+            <div class="diet-card-header">
+                <div class="diet-card-date">
+                    <h3>${record.date}</h3>
+                    <span class="diet-card-weekday">${weekday}</span>
+                </div>
+                <button class="diet-card-delete" onclick="deleteDietRecord(${record.id})" title="删除这天的记录">
+                    <svg viewBox="0 0 24 24" fill="white">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                    <span>删除</span>
+                </button>
+            </div>
+            
+            <div class="diet-card-content">
+                ${createMealSection('breakfast', '早餐', record.breakfast)}
+                ${createMealSection('lunch', '午餐', record.lunch)}
+                ${createMealSection('dinner', '晚餐', record.dinner)}
+            </div>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+function createMealSection(mealType, mealName, mealData) {
+    const icons = {
+        breakfast: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        lunch: '<path d="M12 2v20m-6-8h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        dinner: '<path d="M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zM3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    };
+    
+    if (!mealData || (!mealData.time && !mealData.foods && !mealData.notes)) {
+        return `
+            <div class="meal-section meal-empty">
+                <div class="meal-header">
+                    <svg class="meal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        ${icons[mealType]}
+                    </svg>
+                    <h4>${mealName}</h4>
+                </div>
+                <div class="meal-empty-text">未记录</div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="meal-section">
+            <div class="meal-header">
+                <svg class="meal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    ${icons[mealType]}
+                </svg>
+                <h4>${mealName}</h4>
+                ${mealData.time ? `<span class="meal-time">${mealData.time}</span>` : ''}
+            </div>
+            <div class="meal-body">
+                ${mealData.foods ? `
+                    <div class="meal-foods">
+                        <svg class="meal-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 2a5 5 0 015 5v4a5 5 0 01-10 0V7a5 5 0 015-5zm0 13v7m-6 0h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>${mealData.foods}</span>
+                    </div>
+                ` : ''}
+                ${mealData.notes ? `
+                    <div class="meal-notes">
+                        <svg class="meal-detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>${mealData.notes}</span>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+async function deleteDietRecord(id) {
+    const confirmed = await showConfirm('确定要删除这条饮食记录吗？', '删除确认');
+
+    if (confirmed) {
+        try {
+            const result = await window.electronAPI.deleteDietRecord(id);
+
+            if (result.success) {
+                await loadDietData();
+                showToast('删除成功', 'success');
+            } else {
+                throw new Error(result.error || '删除失败');
+            }
+        } catch (error) {
+            console.error('删除饮食数据错误:', error);
+            showToast('删除失败：' + error.message, 'error');
+        }
+    }
+}
+
+function handleDietSearch() {
+    const searchTerm = DOM.dietRecordSearch.value.toLowerCase();
+    
+    if (!searchTerm) {
+        filteredDietData = [...dietData];
+    } else {
+        filteredDietData = dietData.filter(record => {
+            const date = record.date.toLowerCase();
+            const breakfastFoods = (record.breakfast?.foods || '').toLowerCase();
+            const lunchFoods = (record.lunch?.foods || '').toLowerCase();
+            const dinnerFoods = (record.dinner?.foods || '').toLowerCase();
+            const breakfastNotes = (record.breakfast?.notes || '').toLowerCase();
+            const lunchNotes = (record.lunch?.notes || '').toLowerCase();
+            const dinnerNotes = (record.dinner?.notes || '').toLowerCase();
+            
+            return date.includes(searchTerm) || 
+                   breakfastFoods.includes(searchTerm) || 
+                   lunchFoods.includes(searchTerm) || 
+                   dinnerFoods.includes(searchTerm) ||
+                   breakfastNotes.includes(searchTerm) ||
+                   lunchNotes.includes(searchTerm) ||
+                   dinnerNotes.includes(searchTerm);
+        });
+    }
+    
+    displayDietRecords();
+    updateDietEmptyState();
+}
+
+function updateDietEmptyState() {
+    const hasData = dietData.length > 0;
+    const hasFilteredData = filteredDietData.length > 0;
+    
+    if (!hasData) {
+        // 没有任何数据，显示空状态
+        DOM.dietEmptyState.style.display = 'flex';
+        DOM.dietCardsContainer.style.display = 'none';
+    } else if (hasData && !hasFilteredData) {
+        // 有数据但搜索无结果，隐藏空状态但也隐藏容器（因为没有内容显示）
+        DOM.dietEmptyState.style.display = 'none';
+        DOM.dietCardsContainer.style.display = 'grid';
+    } else {
+        // 有过滤后的数据，显示容器
+        DOM.dietEmptyState.style.display = 'none';
+        DOM.dietCardsContainer.style.display = 'grid';
     }
 }
 
@@ -742,7 +1020,9 @@ async function loadSettings() {
     try {
         const config = await window.electronAPI.getConfig();
         if (DOM.currentDataPath) {
-            DOM.currentDataPath.textContent = config.dataFilePath || '加载失败';
+            const directory = config.dataDirectory || '加载失败';
+            DOM.currentDataPath.textContent = directory;
+            DOM.currentDataPath.title = `锻炼记录：${config.exerciseFile}\n饮食记录：${config.dietFile}`;
         }
     } catch (error) {
         console.error('加载设置错误:', error);
@@ -757,9 +1037,11 @@ async function handleChangeDataPath() {
         const result = await window.electronAPI.setDataPath(newPath);
 
         if (result.success) {
-            showToast(`数据存储位置已更新！\n\n新路径：${result.newPath}\n\n数据已从旧位置复制到新位置。`, 'success');
+            showToast(`数据存储位置已更新！\n\n新目录：${result.newPath}\n\n包含文件：\n• exercise-data.json（锻炼记录）\n• diet-data.json（饮食记录）\n\n所有数据已从旧位置复制到新位置。`, 'success');
             DOM.currentDataPath.textContent = result.newPath;
+            DOM.currentDataPath.title = `锻炼记录：${result.exerciseFile}\n饮食记录：${result.dietFile}`;
             await loadData();
+            await loadDietData();
         } else {
             throw new Error(result.error || '更新路径失败');
         }
@@ -1114,9 +1396,27 @@ async function sendAIMessage(message) {
     const thinkingElement = appendAIThinkingMessage();
     
     try {
-        // 准备上下文：最近的运动数据摘要
-        const recentData = getRecentDataSummary();
-        const systemPrompt = `你是一个专业的运动健身教练。以下是用户的运动数据：\n${recentData}\n请根据这些数据回答用户的问题，提供专业的建议。`;
+        // 获取用户选择的数据类型
+        const dataType = document.querySelector('input[name="aiDataType"]:checked')?.value || 'all';
+        
+        // 准备上下文：根据选择的数据类型获取摘要
+        let recentData = '';
+        let roleDescription = '';
+        
+        if (dataType === 'exercise') {
+            recentData = getRecentDataSummary();
+            roleDescription = '你是一个专业的运动健身教练。以下是用户的运动数据：';
+        } else if (dataType === 'diet') {
+            recentData = getDietDataSummary();
+            roleDescription = '你是一个专业的营养师。以下是用户的饮食数据：';
+        } else {
+            const exerciseSummary = getRecentDataSummary();
+            const dietSummary = getDietDataSummary();
+            recentData = `=== 运动数据 ===\n${exerciseSummary}\n\n=== 饮食数据 ===\n${dietSummary}`;
+            roleDescription = '你是一个专业的健康顾问，同时具备运动健身和营养学知识。以下是用户的运动和饮食数据：';
+        }
+        
+        const systemPrompt = `${roleDescription}\n${recentData}\n请根据这些数据回答用户的问题，提供专业的建议。`;
         
         // 移除思考动画，创建流式输出容器
         thinkingElement.remove();
@@ -1271,6 +1571,40 @@ function getRecentDataSummary() {
         const feeling = record.feeling ? record.feeling.substring(0, 30) + (record.feeling.length > 30 ? '...' : '') : '-';
         
         summary += `${date} | ${runTime} | ${distance} | ${duration} | ${pace} | ${pushups} | ${squats} | ${mountainClimbers} | ${feeling}\n`;
+    });
+    
+    return summary;
+}
+
+// 获取饮食数据摘要
+function getDietDataSummary() {
+    if (dietData.length === 0) {
+        return '用户暂无饮食记录。';
+    }
+    
+    // 获取所有数据，按日期排序（从旧到新）
+    const sortedData = [...dietData].sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    let summary = `饮食数据总览：\n`;
+    summary += `- 总记录天数：${sortedData.length}天\n\n`;
+    
+    summary += `详细每日饮食数据：\n`;
+    summary += `日期 | 早餐时间 | 早餐食物 | 早餐备注 | 午餐时间 | 午餐食物 | 午餐备注 | 晚餐时间 | 晚餐食物 | 晚餐备注\n`;
+    summary += `${'─'.repeat(150)}\n`;
+    
+    sortedData.forEach(record => {
+        const date = record.date;
+        const breakfastTime = record.breakfast?.time || '-';
+        const breakfastFoods = record.breakfast?.foods || '-';
+        const breakfastNotes = record.breakfast?.notes ? record.breakfast.notes.substring(0, 20) + (record.breakfast.notes.length > 20 ? '...' : '') : '-';
+        const lunchTime = record.lunch?.time || '-';
+        const lunchFoods = record.lunch?.foods || '-';
+        const lunchNotes = record.lunch?.notes ? record.lunch.notes.substring(0, 20) + (record.lunch.notes.length > 20 ? '...' : '') : '-';
+        const dinnerTime = record.dinner?.time || '-';
+        const dinnerFoods = record.dinner?.foods || '-';
+        const dinnerNotes = record.dinner?.notes ? record.dinner.notes.substring(0, 20) + (record.dinner.notes.length > 20 ? '...' : '') : '-';
+        
+        summary += `${date} | ${breakfastTime} | ${breakfastFoods} | ${breakfastNotes} | ${lunchTime} | ${lunchFoods} | ${lunchNotes} | ${dinnerTime} | ${dinnerFoods} | ${dinnerNotes}\n`;
     });
     
     return summary;
