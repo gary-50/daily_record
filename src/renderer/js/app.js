@@ -564,11 +564,6 @@ function updateStatCards(labels, groupedData) {
             return checkZero && value === 0 ? null : value;
         });
 
-    const runDistanceData = dataMapper('runDistance', true);
-    const pushupsData = dataMapper('pushups', true);
-    const squatsData = dataMapper('squats', true);
-    const mountainClimbersData = dataMapper('mountainClimbers', true);
-
     const paceData = labels.map(label => {
         const data = groupedData[label];
         return (data.runDurationSeconds > 0 && data.runDistance > 0) 
@@ -578,11 +573,9 @@ function updateStatCards(labels, groupedData) {
 
     const totals = labels.reduce((acc, label) => {
         const data = groupedData[label];
-        acc.runDurationSeconds += data.runDurationSeconds;
-        acc.runDistance += data.runDistance;
-        acc.pushups += data.pushups;
-        acc.squats += data.squats;
-        acc.mountainClimbers += data.mountainClimbers;
+        ['runDurationSeconds', 'runDistance', 'pushups', 'squats', 'mountainClimbers'].forEach(field => {
+            acc[field] += data[field];
+        });
         return acc;
     }, { runDurationSeconds: 0, runDistance: 0, pushups: 0, squats: 0, mountainClimbers: 0 });
 
@@ -617,16 +610,21 @@ function updateStatCards(labels, groupedData) {
 
     return {
         runDurationData: dataMapper('runDurationSeconds').map(v => v / 60),
-        runDistanceData,
+        runDistanceData: dataMapper('runDistance', true),
         paceData,
-        pushupsData,
-        squatsData,
-        mountainClimbersData
+        pushupsData: dataMapper('pushups', true),
+        squatsData: dataMapper('squats', true),
+        mountainClimbersData: dataMapper('mountainClimbers', true)
     };
 }
 
 function drawPaceChart(labels, paceData) {
     const paceInSeconds = paceData.map(pace => pace ? pace * 60 : null);
+    const formatPaceTime = (value) => {
+        const minutes = Math.floor(value / 60);
+        const seconds = Math.floor(value % 60);
+        return `${minutes}'${String(seconds).padStart(2, '0')}"`;
+    };
 
     charts.pace = drawChart('paceChart', charts.pace, labels, [
         {
@@ -642,23 +640,14 @@ function drawPaceChart(labels, paceData) {
         y: {
             suggestedMin: 300,
             suggestedMax: 420,
-            ticks: {
-                callback: (value) => {
-                    const minutes = Math.floor(value / 60);
-                    const seconds = Math.floor(value % 60);
-                    return `${minutes}'${String(seconds).padStart(2, '0')}"`;
-                }
-            }
+            ticks: { callback: formatPaceTime }
         },
         plugins: {
             tooltip: {
                 callbacks: {
                     label: (context) => {
                         const seconds = context.parsed.y;
-                        if (seconds === null) return '';
-                        const minutes = Math.floor(seconds / 60);
-                        const secs = Math.floor(seconds % 60);
-                        return `配速: ${minutes}'${String(secs).padStart(2, '0')}" /公里`;
+                        return seconds === null ? '' : `配速: ${formatPaceTime(seconds)} /公里`;
                     }
                 }
             }
@@ -700,31 +689,16 @@ function drawChart(chartId, chartRef, labels, datasets, yAxisOptions = {}) {
 }
 
 function drawStrengthChart(labels, pushupsData, squatsData, mountainClimbersData) {
+    const createDataset = (label, data, color) => ({
+        label, data, tension: 0.4, spanGaps: true,
+        borderColor: color,
+        backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.2)')
+    });
+
     charts.strength = drawChart('strengthChart', charts.strength, labels, [
-        {
-            label: '俯卧撑(个)',
-            data: pushupsData,
-            borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231, 76, 60, 0.2)',
-            tension: 0.4,
-            spanGaps: true
-        },
-        {
-            label: '深蹲(个)',
-            data: squatsData,
-            borderColor: '#f39c12',
-            backgroundColor: 'rgba(243, 156, 18, 0.2)',
-            tension: 0.4,
-            spanGaps: true
-        },
-        {
-            label: '登山跑(个)',
-            data: mountainClimbersData,
-            borderColor: '#9b59b6',
-            backgroundColor: 'rgba(155, 89, 182, 0.2)',
-            tension: 0.4,
-            spanGaps: true
-        }
+        createDataset('俯卧撑(个)', pushupsData, '#e74c3c'),
+        createDataset('深蹲(个)', squatsData, '#f39c12'),
+        createDataset('登山跑(个)', mountainClimbersData, '#9b59b6')
     ]);
 }
 
