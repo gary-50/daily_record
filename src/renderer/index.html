@@ -115,9 +115,9 @@
                         <h3 class="section-title">跑步数据</h3>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="runDuration">时长（时:分:秒）</label>
-                                <input type="text" id="runDuration" placeholder="00:30:00" pattern="[0-9]{1,2}:[0-5][0-9]:[0-5][0-9]">
-                                <small style="color: #666; font-size: 12px;">格式：时:分:秒，例如 00:30:45</small>
+                                <label for="runDuration">时长</label>
+                                <input type="time" id="runDuration" step="1">
+                                <small style="color: #666; font-size: 12px;">选择跑步时长（时:分:秒）</small>
                             </div>
                             <div class="form-group">
                                 <label for="runDistance">距离（公里）</label>
@@ -433,7 +433,7 @@
                     </h3>
                     <div class="settings-about">
                         <h4>体育锻炼记录系统</h4>
-                        <p>版本：1.1.1</p>
+                        <p>版本：1.2.3</p>
                         <p>基于 Electron 的桌面应用，用于记录和管理体育锻炼数据。</p>
                     </div>
                 </div>

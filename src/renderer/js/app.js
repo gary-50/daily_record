@@ -214,11 +214,20 @@ async function loadData() {
 
 function timeToSeconds(timeStr) {
     if (!timeStr || timeStr.trim() === '') return 0;
+    
+    timeStr = timeStr.trim();
     const parts = timeStr.split(':');
-    if (parts.length === 3) {
+    
+    if (parts.length === 2) {
+        // HH:MM 格式（时间选择器返回的格式）
+        const [hours, minutes] = parts.map(p => parseInt(p) || 0);
+        return hours * 3600 + minutes * 60;
+    } else if (parts.length === 3) {
+        // HH:MM:SS 格式（时间选择器包含秒数）
         const [hours, minutes, seconds] = parts.map(p => parseInt(p) || 0);
         return hours * 3600 + minutes * 60 + seconds;
     }
+    
     return 0;
 }
 
