@@ -2,17 +2,19 @@
 
 > 基于 Electron 的桌面应用，用于记录和管理日常运动与饮食数据。
 
-![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-ISC-orange.svg)
 
 ## ✨ 核心特性
 
 ### 🏃‍♂️ 运动记录
-- **跑步数据**：时间、时长、距离、配速自动计算
+- **跑步类型选择**：长跑 / 跑速耐训练
+  - **长跑**：记录时长、距离、配速自动计算
+  - **跑速耐**：记录每组距离（米）、组数、配速、训练备注
 - **力量训练**：俯卧撑、深蹲、登山跑等项目记录
 - **体感日志**：记录每次运动的感受和状态
-- **智能搜索**：快速查找历史记录
+- **智能搜索**：快速查找历史记录（支持跑速耐数据）
 - **多列排序**：按日期、距离、时长等排序
 
 ### 🍽️ 饮食记录（v3.0 新增）
@@ -128,18 +130,37 @@ record/
 
 ### 数据格式
 
-**运动记录示例**：
+**运动记录示例（长跑）**：
 ```json
 {
   "id": 1234567890,
   "date": "2025-10-15",
   "runTime": "06:30",
+  "runType": "longRun",
   "runDurationSeconds": 1800,
   "runDistance": 5.2,
   "pushups": 50,
   "squats": 30,
   "mountainClimbers": 40,
   "feeling": "今天状态不错"
+}
+```
+
+**运动记录示例（跑速耐）**：
+```json
+{
+  "id": 1234567891,
+  "date": "2025-10-16",
+  "runTime": "06:30",
+  "runType": "speedEndurance",
+  "distancePerSet": 400,
+  "sets": 6,
+  "pacePerSet": "1'30\"",
+  "speedEnduranceNotes": "休息2分钟，感觉不错",
+  "pushups": 30,
+  "squats": 20,
+  "mountainClimbers": 20,
+  "feeling": "速度耐力训练"
 }
 ```
 
@@ -189,12 +210,14 @@ record/
 
 ### 添加运动记录
 1. 点击侧边栏 **"添加记录"** → **"运动记录"** 标签
-2. 填写数据：
+2. 选择跑步类型：
+   - **长跑**：填写跑步时长、距离（自动计算配速）
+   - **跑速耐**：填写每组距离（米）、组数、配速（如 1'30"）、训练备注
+3. 填写其他数据：
    - 日期、跑步时间
-   - 跑步时长、距离（自动计算配速）
    - 俯卧撑、深蹲、登山跑个数
    - 体感记录（可选）
-3. 点击 **"保存记录"**
+4. 点击 **"保存记录"**
 
 ### 添加饮食记录
 1. 点击侧边栏 **"添加记录"** → **"饮食记录"** 标签
@@ -352,7 +375,7 @@ git grep "<旧版本号>"  # 例如：git grep "2.1.1"
 
 详细的版本更新记录请查看 [CHANGELOG.md](CHANGELOG.md)。
 
-当前版本：**v3.1.0** - 用户体验优化：历史记录折叠与饮食数据增强
+当前版本：**v3.2.0** - 跑速耐训练记录功能 + 程序名称修正
 
 ## 📄 许可证
 

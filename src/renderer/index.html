@@ -96,6 +96,23 @@
                     </div>
 
                     <div class="form-section">
+                        <h3 class="section-title">跑步类型</h3>
+                        <div class="form-group">
+                            <div style="display: flex; gap: 1rem;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="runType" value="longRun" checked style="margin-right: 0.5rem;">
+                                    <span>长跑</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="runType" value="speedEndurance" style="margin-right: 0.5rem;">
+                                    <span>跑速耐</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 长跑数据表单 -->
+                    <div class="form-section" id="longRunSection">
                         <h3 class="section-title">跑步数据</h3>
                         <div class="form-grid">
                             <div class="form-group">
@@ -107,6 +124,32 @@
                                 <label for="runDistance">距离（公里）</label>
                                 <input type="number" id="runDistance" min="0" step="0.01" placeholder="0.00">
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- 跑速耐数据表单 -->
+                    <div class="form-section" id="speedEnduranceSection" style="display: none;">
+                        <h3 class="section-title">跑速耐数据</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="distancePerSet">每组距离（米）</label>
+                                <input type="number" id="distancePerSet" min="0" step="1" placeholder="例如：400">
+                                <small style="color: #666; font-size: 12px;">单组跑步距离</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="sets">组数</label>
+                                <input type="number" id="sets" min="0" step="1" placeholder="例如：6">
+                                <small style="color: #666; font-size: 12px;">完成的组数</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="pacePerSet">配速（分'秒"）</label>
+                                <input type="text" id="pacePerSet" placeholder="例如：1'30&quot;">
+                                <small style="color: #666; font-size: 12px;">每组的配速</small>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="speedEnduranceNotes">备注</label>
+                            <textarea id="speedEnduranceNotes" placeholder="记录今天跑速耐的感受，休息时间等..." rows="3"></textarea>
                         </div>
                     </div>
 
@@ -694,7 +737,7 @@
                     </h3>
                     <div class="settings-about">
                         <h4>日常记录系统</h4>
-                        <p>版本：3.1.0</p>
+                        <p>版本：3.2.0</p>
                         <p>基于 Electron 的桌面应用，用于记录和管理日常生活数据，包括锻炼和饮食。</p>
                     </div>
                 </div>

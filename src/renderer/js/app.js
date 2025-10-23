@@ -236,6 +236,22 @@ function bindEventListeners() {
             }
         });
     });
+
+    // 跑步类型切换事件
+    document.querySelectorAll('input[name="runType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const longRunSection = document.getElementById('longRunSection');
+            const speedEnduranceSection = document.getElementById('speedEnduranceSection');
+            
+            if (this.value === 'longRun') {
+                longRunSection.style.display = 'block';
+                speedEnduranceSection.style.display = 'none';
+            } else if (this.value === 'speedEndurance') {
+                longRunSection.style.display = 'none';
+                speedEnduranceSection.style.display = 'block';
+            }
+        });
+    });
 }
 
 async function loadData() {
@@ -445,18 +461,31 @@ async function submitFormWithFeedback(e, getRecordData, saveMethod, loadMethod, 
 }
 
 async function handleFormSubmit(e) {
+    const runType = document.querySelector('input[name="runType"]:checked').value;
+    
+    const baseRecord = {
+        date: DOM.date.value,
+        runTime: document.getElementById('runTime').value || '',
+        pushups: parseInt(document.getElementById('pushups').value) || 0,
+        squats: parseInt(document.getElementById('squats').value) || 0,
+        mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
+        feeling: document.getElementById('feeling').value,
+        runType: runType
+    };
+
+    if (runType === 'longRun') {
+        baseRecord.runDurationSeconds = timeToSeconds(document.getElementById('runDuration').value);
+        baseRecord.runDistance = parseFloat(document.getElementById('runDistance').value) || 0;
+    } else if (runType === 'speedEndurance') {
+        baseRecord.distancePerSet = parseInt(document.getElementById('distancePerSet').value) || 0;
+        baseRecord.sets = parseInt(document.getElementById('sets').value) || 0;
+        baseRecord.pacePerSet = document.getElementById('pacePerSet').value || '';
+        baseRecord.speedEnduranceNotes = document.getElementById('speedEnduranceNotes').value || '';
+    }
+
     await submitFormWithFeedback(
         e,
-        () => ({
-            date: DOM.date.value,
-            runTime: document.getElementById('runTime').value || '',
-            runDurationSeconds: timeToSeconds(document.getElementById('runDuration').value),
-            runDistance: parseFloat(document.getElementById('runDistance').value) || 0,
-            pushups: parseInt(document.getElementById('pushups').value) || 0,
-            squats: parseInt(document.getElementById('squats').value) || 0,
-            mountainClimbers: parseInt(document.getElementById('mountainClimbers').value) || 0,
-            feeling: document.getElementById('feeling').value
-        }),
+        () => baseRecord,
         window.electronAPI.saveRecord,
         loadData,
         '记录已保存！'
@@ -529,26 +558,118 @@ function displayRecords() {
     }
 
     dataToDisplay.forEach(record => {
-        const durationSeconds = record.runDurationSeconds || (record.runDuration ? record.runDuration * 60 : 0);
-        const durationDisplay = secondsToTime(durationSeconds);
-        const pace = calculatePace(durationSeconds, record.runDistance);
+        const runType = record.runType || 'longRun';
         const feeling = record.feeling || '-';
-        const feelingDisplay = feeling === '-' ? '-' : `<span class="feeling-preview" onclick="showFeelingModal('${encodeURIComponent(feeling)}')">${feeling}</span>`;
+        
+        let overviewRow, detailContent;
+
+        if (runType === 'speedEndurance') {
+            // 跑速耐记录
+            const distancePerSet = record.distancePerSet || 0;
+            const sets = record.sets || 0;
+            const pacePerSet = record.pacePerSet || '-';
+            const speedEnduranceNotes = record.speedEnduranceNotes || '-';
+            
+            overviewRow = `
+                <td class="toggle-cell" onclick="toggleExerciseRow(this)">
+                    <svg class="row-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </td>
+                <td>${record.date}</td>
+                <td>${record.runTime || '-'}</td>
+                <td colspan="2"><span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">跑速耐</span> ${distancePerSet}米×${sets}组</td>
+            `;
+            
+            detailContent = `
+                <div class="detail-section">
+                    <div class="detail-item">
+                        <label>每组距离</label>
+                        <span>${distancePerSet}米</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>组数</label>
+                        <span>${sets}组</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>配速</label>
+                        <span>${pacePerSet}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>总距离</label>
+                        <span>${(distancePerSet * sets / 1000).toFixed(2)}公里</span>
+                    </div>
+                </div>
+                ${speedEnduranceNotes !== '-' ? `
+                    <div class="detail-feeling">
+                        <label>备注：</label>
+                        <p>${speedEnduranceNotes}</p>
+                    </div>
+                ` : ''}
+                ${record.pushups || record.squats || record.mountainClimbers ? `
+                    <div class="detail-section">
+                        ${record.pushups ? `<div class="detail-item"><label>俯卧撑</label><span>${record.pushups}</span></div>` : ''}
+                        ${record.squats ? `<div class="detail-item"><label>深蹲</label><span>${record.squats}</span></div>` : ''}
+                        ${record.mountainClimbers ? `<div class="detail-item"><label>登山跑</label><span>${record.mountainClimbers}</span></div>` : ''}
+                    </div>
+                ` : ''}
+                ${feeling !== '-' ? `
+                    <div class="detail-feeling">
+                        <label>体感记录：</label>
+                        <p>${feeling}</p>
+                    </div>
+                ` : ''}
+            `;
+        } else {
+            // 长跑记录
+            const durationSeconds = record.runDurationSeconds || (record.runDuration ? record.runDuration * 60 : 0);
+            const durationDisplay = secondsToTime(durationSeconds);
+            const pace = calculatePace(durationSeconds, record.runDistance);
+            
+            overviewRow = `
+                <td class="toggle-cell" onclick="toggleExerciseRow(this)">
+                    <svg class="row-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </td>
+                <td>${record.date}</td>
+                <td>${record.runTime || '-'}</td>
+                <td>${durationDisplay}</td>
+                <td>${record.runDistance || '-'}</td>
+            `;
+            
+            detailContent = `
+                <div class="detail-section">
+                    <div class="detail-item">
+                        <label>配速</label>
+                        <span>${pace}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>俯卧撑</label>
+                        <span>${record.pushups || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>深蹲</label>
+                        <span>${record.squats || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>登山跑</label>
+                        <span>${record.mountainClimbers || '-'}</span>
+                    </div>
+                </div>
+                ${feeling !== '-' ? `
+                    <div class="detail-feeling">
+                        <label>体感记录：</label>
+                        <p>${feeling}</p>
+                    </div>
+                ` : ''}
+            `;
+        }
 
         // 创建概览行
         const tr = document.createElement('tr');
         tr.className = 'record-row';
-        tr.innerHTML = `
-            <td class="toggle-cell" onclick="toggleExerciseRow(this)">
-                <svg class="row-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </td>
-            <td>${record.date}</td>
-            <td>${record.runTime || '-'}</td>
-            <td>${durationDisplay}</td>
-            <td>${record.runDistance || '-'}</td>
-        `;
+        tr.innerHTML = overviewRow;
         
         // 创建详情行（默认隐藏）
         const detailRow = document.createElement('tr');
@@ -557,30 +678,7 @@ function displayRecords() {
         detailRow.innerHTML = `
             <td colspan="5">
                 <div class="record-detail-content">
-                    <div class="detail-section">
-                        <div class="detail-item">
-                            <label>配速</label>
-                            <span>${pace}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>俯卧撑</label>
-                            <span>${record.pushups || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>深蹲</label>
-                            <span>${record.squats || '-'}</span>
-                        </div>
-                        <div class="detail-item">
-                            <label>登山跑</label>
-                            <span>${record.mountainClimbers || '-'}</span>
-                        </div>
-                    </div>
-                    ${feeling !== '-' ? `
-                        <div class="detail-feeling">
-                            <label>体感记录：</label>
-                            <p>${feeling}</p>
-                        </div>
-                    ` : ''}
+                    ${detailContent}
                     <div class="detail-actions">
                         <button class="delete-btn" onclick="deleteRecord(${record.id})">删除记录</button>
                     </div>
@@ -925,15 +1023,25 @@ function groupDataByPeriod(filteredData) {
             };
         }
 
-        // 兼容旧数据格式
-        const durationSeconds = record.runDurationSeconds || (record.runDuration ? record.runDuration * 60 : 0);
+        // 兼容旧数据格式和跑速耐记录
+        let durationSeconds = 0;
+        let distance = 0;
+        
+        if (record.runType === 'speedEndurance') {
+            // 跑速耐：计算总距离（米转公里）
+            distance = (record.distancePerSet || 0) * (record.sets || 0) / 1000;
+        } else {
+            // 长跑
+            durationSeconds = record.runDurationSeconds || (record.runDuration ? record.runDuration * 60 : 0);
+            distance = record.runDistance || 0;
+        }
 
         // 累加数据
         groupedData[key].runDurationSeconds += durationSeconds;
-        groupedData[key].runDistance += record.runDistance;
-        groupedData[key].pushups += record.pushups;
-        groupedData[key].squats += record.squats;
-        groupedData[key].mountainClimbers += record.mountainClimbers;
+        groupedData[key].runDistance += distance;
+        groupedData[key].pushups += record.pushups || 0;
+        groupedData[key].squats += record.squats || 0;
+        groupedData[key].mountainClimbers += record.mountainClimbers || 0;
         groupedData[key].count += 1;
     });
 
@@ -1225,9 +1333,19 @@ function handleSearch(e) {
         filteredData = [...exerciseData];
     } else {
         filteredData = exerciseData.filter(record => {
-            return record.date.includes(searchTerm) ||
+            const matchBasic = record.date.includes(searchTerm) ||
                    (record.feeling && record.feeling.toLowerCase().includes(searchTerm)) ||
                    (record.runTime && record.runTime.includes(searchTerm));
+            
+            // 搜索跑速耐相关字段
+            const matchSpeedEndurance = record.runType === 'speedEndurance' && (
+                (record.pacePerSet && record.pacePerSet.toLowerCase().includes(searchTerm)) ||
+                (record.speedEnduranceNotes && record.speedEnduranceNotes.toLowerCase().includes(searchTerm)) ||
+                (record.distancePerSet && record.distancePerSet.toString().includes(searchTerm)) ||
+                (record.sets && record.sets.toString().includes(searchTerm))
+            );
+            
+            return matchBasic || matchSpeedEndurance;
         });
     }
     
@@ -1639,8 +1757,15 @@ function getRecentDataSummary() {
     const sortedData = [...exerciseData].sort((a, b) => new Date(a.date) - new Date(b.date));
     
     // 统计总体数据
-    const totalRuns = sortedData.filter(r => r.runDistance > 0).length;
-    const totalDistance = sortedData.reduce((sum, r) => sum + (r.runDistance || 0), 0);
+    const longRuns = sortedData.filter(r => r.runType !== 'speedEndurance' && r.runDistance > 0);
+    const speedEnduranceRuns = sortedData.filter(r => r.runType === 'speedEndurance');
+    
+    const totalDistance = sortedData.reduce((sum, r) => {
+        if (r.runType === 'speedEndurance') {
+            return sum + ((r.distancePerSet || 0) * (r.sets || 0) / 1000);
+        }
+        return sum + (r.runDistance || 0);
+    }, 0);
     const totalDuration = sortedData.reduce((sum, r) => sum + (r.runDurationSeconds || 0), 0);
     const totalPushups = sortedData.reduce((sum, r) => sum + (r.pushups || 0), 0);
     const totalSquats = sortedData.reduce((sum, r) => sum + (r.squats || 0), 0);
@@ -1648,34 +1773,57 @@ function getRecentDataSummary() {
     
     let summary = `运动数据总览：\n`;
     summary += `- 总记录天数：${sortedData.length}天\n`;
-    if (totalRuns > 0) {
-        summary += `- 跑步次数：${totalRuns}次\n`;
+    if (longRuns.length > 0) {
+        summary += `- 长跑次数：${longRuns.length}次\n`;
+    }
+    if (speedEnduranceRuns.length > 0) {
+        summary += `- 跑速耐训练次数：${speedEnduranceRuns.length}次\n`;
+    }
+    if (totalDistance > 0) {
         summary += `- 总跑步距离：${totalDistance.toFixed(2)}公里\n`;
+    }
+    if (totalDuration > 0) {
         summary += `- 总跑步时长：${Math.floor(totalDuration / 60)}分钟\n`;
         const avgPace = totalDistance > 0 ? (totalDuration / 60 / totalDistance).toFixed(2) : 0;
-        summary += `- 平均配速：${avgPace}分钟/公里\n`;
+        if (avgPace > 0) summary += `- 平均配速：${avgPace}分钟/公里\n`;
     }
     if (totalPushups > 0) summary += `- 俯卧撑总数：${totalPushups}个\n`;
     if (totalSquats > 0) summary += `- 深蹲总数：${totalSquats}个\n`;
     if (totalMountainClimbers > 0) summary += `- 登山跑总数：${totalMountainClimbers}个\n`;
     
     summary += `\n详细每日数据：\n`;
-    summary += `日期 | 跑步时间 | 跑步距离(km) | 跑步时长 | 配速 | 俯卧撑 | 深蹲 | 登山跑 | 体感\n`;
-    summary += `${'─'.repeat(100)}\n`;
+    summary += `日期 | 类型 | 跑步时间 | 详细信息 | 俯卧撑 | 深蹲 | 登山跑 | 体感/备注\n`;
+    summary += `${'─'.repeat(120)}\n`;
     
     sortedData.forEach(record => {
         const date = record.date;
         const runTime = record.runTime || '-';
-        const distance = record.runDistance > 0 ? record.runDistance.toFixed(2) : '-';
-        const durationSeconds = record.runDurationSeconds || 0;
-        const duration = durationSeconds > 0 ? secondsToTime(durationSeconds) : '-';
-        const pace = calculatePace(durationSeconds, record.runDistance);
         const pushups = record.pushups > 0 ? record.pushups : '-';
         const squats = record.squats > 0 ? record.squats : '-';
         const mountainClimbers = record.mountainClimbers > 0 ? record.mountainClimbers : '-';
-        const feeling = record.feeling ? record.feeling.substring(0, 30) + (record.feeling.length > 30 ? '...' : '') : '-';
         
-        summary += `${date} | ${runTime} | ${distance} | ${duration} | ${pace} | ${pushups} | ${squats} | ${mountainClimbers} | ${feeling}\n`;
+        let type = '';
+        let details = '';
+        let notes = '';
+        
+        if (record.runType === 'speedEndurance') {
+            type = '跑速耐';
+            const distancePerSet = record.distancePerSet || 0;
+            const sets = record.sets || 0;
+            const pacePerSet = record.pacePerSet || '-';
+            details = `${distancePerSet}米×${sets}组, 配速:${pacePerSet}`;
+            notes = record.speedEnduranceNotes ? record.speedEnduranceNotes.substring(0, 30) + (record.speedEnduranceNotes.length > 30 ? '...' : '') : '-';
+        } else {
+            type = '长跑';
+            const distance = record.runDistance > 0 ? record.runDistance.toFixed(2) + 'km' : '-';
+            const durationSeconds = record.runDurationSeconds || 0;
+            const duration = durationSeconds > 0 ? secondsToTime(durationSeconds) : '-';
+            const pace = calculatePace(durationSeconds, record.runDistance);
+            details = `距离:${distance}, 时长:${duration}, 配速:${pace}`;
+            notes = record.feeling ? record.feeling.substring(0, 30) + (record.feeling.length > 30 ? '...' : '') : '-';
+        }
+        
+        summary += `${date} | ${type} | ${runTime} | ${details} | ${pushups} | ${squats} | ${mountainClimbers} | ${notes}\n`;
     });
     
     return summary;
