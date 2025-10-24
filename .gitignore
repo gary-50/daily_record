@@ -8,3 +8,8 @@ Thumbs.db
 exercise-data.json
 学习文档.md
 diet-data.json
+
+# 环境变量文件（包含敏感信息）
+.env
+.env.local
+.env.*.local

@@ -1,6 +1,6 @@
 {
   "name": "exercise-tracker-electron",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "日常记录系统 - 运动与饮食 - Electron版本",
   "main": "src/main/main.js",
   "scripts": {
@@ -63,6 +63,8 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
-    "chart.js": "^4.4.0"
+    "chart.js": "^4.4.0",
+    "dotenv": "^17.2.3",
+    "googleapis": "^164.1.0"
   }
 }

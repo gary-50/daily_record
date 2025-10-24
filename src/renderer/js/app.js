@@ -2241,9 +2241,270 @@ function bindAIEvents() {
     });
 }
 
+// ==================== Google 同步功能 ====================
+
+let isGoogleAuthenticated = false;
+let googleUserInfo = null;
+
+// 加载 Google 配置
+async function loadGoogleConfig() {
+    try {
+        const result = await window.electronAPI.getGoogleConfig();
+        if (result.success && result.config) {
+            if (result.config.autoSyncOnStart !== undefined) {
+                document.getElementById('autoSyncCheckbox').checked = result.config.autoSyncOnStart !== false;
+            }
+        }
+    } catch (error) {
+        console.error('加载 Google 配置失败:', error);
+    }
+}
+
+// 检查 Google 认证状态
+async function checkGoogleAuthStatus() {
+    try {
+        const result = await window.electronAPI.checkGoogleAuth();
+        if (result.success) {
+            isGoogleAuthenticated = result.isAuthenticated;
+            if (result.isAuthenticated && result.userInfo) {
+                googleUserInfo = result.userInfo;
+                updateGoogleAuthUI(true);
+                await loadSyncStatus();
+            } else {
+                updateGoogleAuthUI(false);
+            }
+        }
+    } catch (error) {
+        console.error('检查 Google 认证状态失败:', error);
+        updateGoogleAuthUI(false);
+    }
+}
+
+// 更新 Google 认证 UI
+function updateGoogleAuthUI(isAuthenticated) {
+    const googleUserInfoEl = document.getElementById('googleUserInfo');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    const googleLogoutBtn = document.getElementById('googleLogoutBtn');
+    const googleSyncActions = document.getElementById('googleSyncActions');
+    
+    if (isAuthenticated && googleUserInfo) {
+        googleUserInfoEl.textContent = `已登录：${googleUserInfo.email || googleUserInfo.name || '已授权'}`;
+        googleUserInfoEl.style.color = 'var(--success-color)';
+        googleLoginBtn.style.display = 'none';
+        googleLogoutBtn.style.display = 'inline-flex';
+        googleSyncActions.style.display = 'block';
+    } else {
+        googleUserInfoEl.textContent = '未登录';
+        googleUserInfoEl.style.color = '#666';
+        googleLoginBtn.style.display = 'inline-flex';
+        googleLogoutBtn.style.display = 'none';
+        googleSyncActions.style.display = 'none';
+    }
+}
+
+// Google 登录
+async function handleGoogleLogin() {
+    try {
+        showNotification('正在打开登录窗口...', 'info');
+        const result = await window.electronAPI.googleLogin();
+        
+        if (result.success) {
+            googleUserInfo = result.userInfo;
+            isGoogleAuthenticated = true;
+            updateGoogleAuthUI(true);
+            showNotification('Google 登录成功！', 'success');
+            await loadSyncStatus();
+        } else {
+            showNotification(`登录失败：${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Google 登录失败:', error);
+        showNotification('登录失败，请重试', 'error');
+    }
+}
+
+// Google 登出
+async function handleGoogleLogout() {
+    try {
+        const result = await window.electronAPI.googleLogout();
+        
+        if (result.success) {
+            isGoogleAuthenticated = false;
+            googleUserInfo = null;
+            updateGoogleAuthUI(false);
+            showNotification('已登出 Google 账号', 'success');
+        } else {
+            showNotification(`登出失败：${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('Google 登出失败:', error);
+        showNotification('登出失败，请重试', 'error');
+    }
+}
+
+// 保存 Google 配置（已移除配置表单，保留函数以防兼容性问题）
+async function saveGoogleConfig(event) {
+    if (event) event.preventDefault();
+    // 配置已硬编码，无需手动保存
+}
+
+// 手动同步
+async function handleManualSync() {
+    const btn = document.getElementById('manualSyncBtn');
+    const originalText = btn.innerHTML;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="btn-icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            同步中...
+        `;
+        
+        showNotification('正在同步数据到云端...', 'info');
+        const result = await window.electronAPI.syncToCloud();
+        
+        if (result.success) {
+            const conflicts = result.results.exercise.conflicts || result.results.diet.conflicts;
+            const message = conflicts 
+                ? '同步完成（已自动合并冲突）' 
+                : '同步完成';
+            showNotification(message, 'success');
+            await loadSyncStatus();
+            
+            // 重新加载数据
+            loadData();
+            loadDietData();
+        } else {
+            showNotification(`同步失败：${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('同步失败:', error);
+        showNotification('同步失败，请重试', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// 查看同步状态
+async function handleSyncStatus() {
+    try {
+        const result = await window.electronAPI.getSyncStatus();
+        
+        if (result.success) {
+            const lastSync = result.lastSyncTime 
+                ? new Date(result.lastSyncTime).toLocaleString('zh-CN')
+                : '从未同步';
+            const deviceMatch = result.deviceId === result.currentDevice;
+            
+            const message = `
+                <strong>同步状态</strong><br>
+                最后同步：${lastSync}<br>
+                运动数据版本：${result.exerciseVersion}<br>
+                饮食数据版本：${result.dietVersion}<br>
+                ${deviceMatch ? '✓ 当前设备' : '⚠ 其他设备'}
+            `;
+            
+            showNotification(message, 'info', 5000);
+        } else {
+            showNotification(`获取状态失败：${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('获取同步状态失败:', error);
+        showNotification('获取状态失败', 'error');
+    }
+}
+
+// 加载同步状态
+async function loadSyncStatus() {
+    try {
+        const result = await window.electronAPI.getSyncStatus();
+        
+        if (result.success && result.lastSyncTime) {
+            const lastSyncEl = document.getElementById('lastSyncTime');
+            const syncTime = new Date(result.lastSyncTime).toLocaleString('zh-CN');
+            lastSyncEl.textContent = `最后同步：${syncTime}`;
+        }
+    } catch (error) {
+        console.error('加载同步状态失败:', error);
+    }
+}
+
+// 切换自动同步
+async function toggleAutoSync(event) {
+    const enabled = event.target.checked;
+    
+    try {
+        const config = await window.electronAPI.getGoogleConfig();
+        if (config.success) {
+            config.config.autoSyncOnStart = enabled;
+            await window.electronAPI.saveGoogleConfig(config.config);
+            showNotification(
+                enabled ? '已启用启动时自动同步' : '已关闭启动时自动同步',
+                'success'
+            );
+        }
+    } catch (error) {
+        console.error('切换自动同步失败:', error);
+        event.target.checked = !enabled;
+    }
+}
+
+// 绑定 Google 同步事件
+function bindGoogleSyncEvents() {
+    // 配置表单已移除，无需绑定
+    
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+    if (googleLoginBtn) {
+        googleLoginBtn.addEventListener('click', handleGoogleLogin);
+    }
+    
+    const googleLogoutBtn = document.getElementById('googleLogoutBtn');
+    if (googleLogoutBtn) {
+        googleLogoutBtn.addEventListener('click', handleGoogleLogout);
+    }
+    
+    const manualSyncBtn = document.getElementById('manualSyncBtn');
+    if (manualSyncBtn) {
+        manualSyncBtn.addEventListener('click', handleManualSync);
+    }
+    
+    const syncStatusBtn = document.getElementById('syncStatusBtn');
+    if (syncStatusBtn) {
+        syncStatusBtn.addEventListener('click', handleSyncStatus);
+    }
+    
+    const autoSyncCheckbox = document.getElementById('autoSyncCheckbox');
+    if (autoSyncCheckbox) {
+        autoSyncCheckbox.addEventListener('change', toggleAutoSync);
+    }
+}
+
+// 添加旋转动画的样式（如果还没有）
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
+
+// ==================== 应用初始化 ====================
+
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     loadAIConfig();
     bindAIEvents();
+    
+    // 初始化 Google 同步
+    loadGoogleConfig();
+    checkGoogleAuthStatus();
+    bindGoogleSyncEvents();
 });

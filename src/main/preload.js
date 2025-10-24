@@ -15,5 +15,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveAIConfig: invokeWith('save-ai-config'),
     getDietRecords: invoke('get-diet-records'),
     saveDietRecord: invokeWith('save-diet-record'),
-    deleteDietRecord: invokeWith('delete-diet-record')
+    deleteDietRecord: invokeWith('delete-diet-record'),
+    
+    // Google 同步 API
+    getGoogleConfig: invoke('get-google-config'),
+    saveGoogleConfig: invokeWith('save-google-config'),
+    googleLogin: invoke('google-login'),
+    googleLogout: invoke('google-logout'),
+    checkGoogleAuth: invoke('check-google-auth'),
+    syncToCloud: invoke('sync-to-cloud'),
+    getSyncStatus: invoke('get-sync-status'),
+    autoSync: invokeWith('auto-sync')
 });

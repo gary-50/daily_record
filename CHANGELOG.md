@@ -1,5 +1,86 @@
 # 更新日志
 
+## v3.3.0 - Google Drive 智能云同步
+
+### 🎯 主要更新
+
+#### Google Drive 云同步功能
+- ✨ **Google OAuth 2.0 认证**
+  - 安全的 Google 账号授权登录
+  - 支持 refresh token，无需频繁登录
+  - 自动检测 token 过期并刷新
+  - 一键登录/登出
+
+- ☁️ **智能增量同步**
+  - 启动时自动同步云端数据
+  - 支持手动触发同步
+  - 增量更新，仅同步变化的数据
+  - 版本管理，避免重复上传
+
+- 🔄 **多设备数据合并**
+  - 自动合并不同设备的数据
+  - 智能冲突解决（按时间戳选择最新）
+  - 按 ID 去重，避免数据重复
+  - 支持设备标识，追溯数据来源
+
+- 📦 **双向同步**
+  - 上传本地数据到 Google Drive
+  - 下载云端数据到本地
+  - 自动合并本地和云端的差异
+  - 保证数据一致性
+
+- 🔐 **安全与隐私**
+  - 数据存储在 Google Drive appDataFolder
+  - 只有应用本身可以访问
+  - 凭据通过环境变量管理
+  - .env 文件已加入 .gitignore
+
+#### 新增文件
+- `src/main/googleAuth.js` - Google OAuth 认证模块
+- `src/main/driveSync.js` - Google Drive 同步逻辑
+- `.env.example` - 环境变量配置模板
+- `GOOGLE_SYNC_GUIDE.md` - Google 同步功能使用指南
+
+#### 依赖更新
+- 新增 `googleapis` ^164.1.0 - Google Drive API 客户端
+- 新增 `dotenv` ^17.2.3 - 环境变量管理
+
+#### 代码变更
+- `main.js`：增加 Google 同步相关 IPC 处理器
+  - google-login / google-logout
+  - check-google-auth
+  - sync-to-cloud / get-sync-status
+  - auto-sync
+- `preload.js`：暴露 Google 同步 API 给渲染进程
+- `app.js`：增加 Google 同步 UI 交互逻辑
+- `index.html`：增加 Google 同步设置界面
+- `.gitignore`：排除 .env 和环境变量文件
+
+#### 技术实现
+- **同步元数据管理**
+  - 记录最后同步时间
+  - 维护数据版本号
+  - 设备 ID 标识
+- **数据文件结构**
+  - `exercise-data.json` - 运动数据
+  - `diet-data.json` - 饮食数据
+  - `sync-metadata.json` - 同步元数据
+- **冲突解决策略**
+  - 按 ID 匹配记录
+  - 比较修改时间
+  - 选择最新版本
+  - 自动合并唯一记录
+
+#### 使用说明
+1. 复制 `.env.example` 为 `.env`
+2. 配置 Google OAuth 凭据（可选，应用内已集成）
+3. 打开"设置" → "Google Drive 云同步"
+4. 点击"登录 Google"授权
+5. 启用"启动时自动同步"
+6. 点击"立即同步"手动触发
+
+---
+
 ## v3.2.0 - 跑速耐训练记录功能 + 程序名称修正
 
 ### 🎯 主要更新

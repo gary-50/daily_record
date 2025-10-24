@@ -703,6 +703,87 @@
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 12h4l3 9 4-18 3 9h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Google Drive 云同步
+                    </h3>
+                    
+                    <!-- Google 登录状态 -->
+                    <div class="settings-item google-auth-status" id="googleAuthStatus">
+                        <div class="settings-description">
+                            <p class="settings-label">账号状态</p>
+                            <p class="settings-value" id="googleUserInfo">未登录</p>
+                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">点击登录按钮，使用您的 Google 账号授权即可启用云同步</small>
+                        </div>
+                        <button class="btn-primary" id="googleLoginBtn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5m0 0l-5-5m5 5H3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            登录 Google
+                        </button>
+                        <button class="btn-secondary" id="googleLogoutBtn" style="display:none;">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5m0 0l-5-5m5 5H9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            登出
+                        </button>
+                    </div>
+
+                    <!-- 同步操作区 -->
+                    <div class="google-sync-actions" id="googleSyncActions" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                        <div class="sync-status-info" id="syncStatusInfo">
+                            <p style="margin-bottom: 0.5rem;"><strong>同步状态</strong></p>
+                            <p style="color: #666; font-size: 14px;" id="lastSyncTime">从未同步</p>
+                        </div>
+                        <div class="sync-buttons" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn-primary" id="manualSyncBtn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                立即同步
+                            </button>
+                            <button class="btn-secondary" id="syncStatusBtn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                查看同步状态
+                            </button>
+                        </div>
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="autoSyncCheckbox" style="width: auto;">
+                                <span>启动时自动同步</span>
+                            </label>
+                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">应用启动时自动检查云端数据并同步</small>
+                        </div>
+                    </div>
+
+                    <div class="settings-hint">
+                        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <p>
+                            <strong>使用说明：</strong><br>
+                            1. 点击"登录 Google"按钮<br>
+                            2. 在弹出窗口中选择您的 Google 账号<br>
+                            3. 授权应用访问您的 Google Drive<br>
+                            4. 登录成功后即可使用云同步功能<br>
+                            <br>
+                            <strong>功能特点：</strong><br>
+                            • 智能增量同步，节省流量<br>
+                            • 支持多设备数据同步<br>
+                            • 自动解决冲突<br>
+                            • 数据加密存储在您的 Google Drive 中<br>
+                            <br>
+                            <strong>开发者注意：</strong><br>
+                            如需自行配置，请复制 .env.example 为 .env 并填入您的 Google OAuth 凭据
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         数据存储位置
@@ -737,7 +818,7 @@
                     </h3>
                     <div class="settings-about">
                         <h4>日常记录系统</h4>
-                        <p>版本：3.2.0</p>
+                        <p>版本：3.3.0</p>
                         <p>基于 Electron 的桌面应用，用于记录和管理日常生活数据，包括锻炼和饮食。</p>
                     </div>
                 </div>

@@ -2,7 +2,7 @@
 
 > 基于 Electron 的桌面应用，用于记录和管理日常运动与饮食数据。
 
-![Version](https://img.shields.io/badge/version-3.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-ISC-orange.svg)
 
@@ -50,6 +50,14 @@
 - **自动迁移**：更改路径时自动复制数据
 - **JSON 格式**：易于备份和手动编辑
 
+### ☁️ Google Drive 云同步（v3.3 新增）
+- **一键登录**：Google OAuth 2.0 安全认证
+- **智能同步**：启动时自动同步，支持手动触发
+- **多设备支持**：自动合并不同设备的数据
+- **冲突解决**：智能选择最新数据，避免重复
+- **增量更新**：只同步变化的数据，节省流量
+- **隐私保护**：数据存储在 Google Drive appDataFolder，仅应用可访问
+
 ## 🚀 快速开始
 
 ### 环境要求
@@ -62,12 +70,21 @@
 # 安装依赖
 npm install
 
+# 配置 Google Drive 同步（可选，如需云同步功能）
+# 1. 复制环境变量模板
+cp .env.example .env
+
+# 2. 编辑 .env 文件，填入你的 Google OAuth 凭据
+# 详细步骤见 GOOGLE_OAUTH_SETUP.md
+
 # 运行应用（生产模式）
 npm start
 
 # 开发模式（带开发者工具）
 npm run dev
 ```
+
+> **提示**：如果不需要 Google Drive 同步功能，可以跳过 `.env` 配置，应用的其他功能仍可正常使用。
 
 ### 打包发布
 
@@ -192,6 +209,7 @@ record/
 ### 核心技术
 - **Electron** ^28.0.0 - 跨平台桌面应用框架
 - **Chart.js** ^4.4.0 - 数据可视化图表库
+- **Google APIs** (googleapis) - Google Drive 云同步
 - **HTML5** - 语义化标签，现代化界面
 - **CSS3** - CSS 变量、Grid、Flexbox、动画
 - **JavaScript (ES6+)** - 模块化、async/await
@@ -199,12 +217,14 @@ record/
 ### 开发工具
 - **Electron Builder** - 应用打包和分发
 - **Node.js** - 运行时环境
+- **dotenv** - 环境变量管理
 
 ### 架构特点
 - **Context Isolation** - 安全的进程隔离
 - **IPC 通信** - 主进程与渲染进程通信
 - **CSS 主题系统** - 基于 CSS 变量的动态主题
 - **LocalStorage** - 用户偏好持久化
+- **环境变量配置** - 安全的凭据管理
 
 ## 📖 使用指南
 
@@ -366,16 +386,35 @@ git grep "<旧版本号>"  # 例如：git grep "2.1.1"
 ## 🔒 安全与隐私
 
 - ✅ 数据完全本地存储，不上传服务器
-- ✅ 无需注册账号，无需联网使用
+- ✅ 无需注册账号，无需联网使用（除非启用云同步）
 - ✅ Context Isolation 确保渲染进程安全
 - ✅ 开源代码，可自行审计
-- ✅ AI 配置加密保存在本地
+- ✅ AI 配置和 OAuth 凭据加密保存在本地
+- ✅ Google Drive 同步使用加密连接，数据仅存储在用户自己的云盘
+- ✅ 敏感凭据通过环境变量管理，不提交到代码仓库
+
+**Google 同步隐私说明**：
+- 数据存储在 Google Drive 的 `appDataFolder`（应用专属文件夹）
+- 只有本应用可以访问，对用户不可见
+- 每个用户的数据完全隔离
+- 可随时在 Google 账号设置中撤销应用授权
 
 ## 📝 更新日志
 
 详细的版本更新记录请查看 [CHANGELOG.md](CHANGELOG.md)。
 
-当前版本：**v3.2.0** - 跑速耐训练记录功能 + 程序名称修正
+当前版本：**v3.3.0** - Google Drive 智能云同步
+
+### v3.3.0 新增功能
+- ✅ Google OAuth 2.0 认证
+- ✅ Google Drive 智能增量同步
+- ✅ 多设备数据自动合并
+- ✅ 冲突自动解决
+- ✅ 启动时自动同步
+- ✅ 环境变量安全配置
+
+**详细文档**：
+- [Google 同步功能使用指南](GOOGLE_SYNC_GUIDE.md) - 完整功能说明和使用教程
 
 ## 📄 许可证
 
