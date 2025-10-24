@@ -2831,3 +2831,103 @@ button {
 [data-theme="dark"] .meal-section:hover {
     background: var(--bg-primary);
 }
+
+/* ==================== 同步提示框样式 ==================== */
+
+/* 提示容器（右下角） */
+.sync-toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+/* 提示框 */
+.sync-toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+    min-width: 250px;
+    pointer-events: auto;
+    animation: slideInRight 0.3s ease-out;
+    transition: var(--transition-base);
+}
+
+.sync-toast.hiding {
+    animation: slideOutRight 0.3s ease-out forwards;
+}
+
+/* 提示框图标 */
+.sync-toast-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.sync-toast.success .sync-toast-icon {
+    stroke: #2ecc71;
+}
+
+.sync-toast.error .sync-toast-icon {
+    stroke: #e74c3c;
+}
+
+/* 提示框文字 */
+.sync-toast-text {
+    flex: 1;
+    font-size: 0.9em;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* 动画 */
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .sync-toast {
+    background: var(--bg-white);
+    border-color: var(--border-color);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .sync-toast-container {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .sync-toast {
+        min-width: auto;
+        width: 100%;
+    }
+}

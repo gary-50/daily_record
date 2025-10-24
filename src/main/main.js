@@ -172,7 +172,64 @@ app.on('window-all-closed', () => {
     }
 });
 
-async function handleSaveRecord(filePath, record, errorPrefix) {
+// 自动同步辅助函数（后台异步执行，不阻塞保存操作）
+async function autoSyncIfEnabled(dataType) {
+    // 不等待同步完成，立即返回
+    if (!driveSync || !googleAuth) {
+        return; // 未登录，跳过同步
+    }
+    
+    // 后台异步同步，不阻塞用户操作
+    (async () => {
+        try {
+            await googleAuth.ensureValidToken();
+            
+            const data = readJSONFile(
+                dataType === 'exercise' ? DATA_FILE : DIET_DATA_FILE,
+                []
+            );
+            
+            const result = await driveSync.syncDataType(
+                dataType,
+                data,
+                writeJSONFile,
+                dataType === 'exercise' ? DATA_FILE : DIET_DATA_FILE
+            );
+            
+            // 发送同步通知到前端
+            const allWindows = BrowserWindow.getAllWindows();
+            allWindows.forEach(window => {
+                window.webContents.send('sync-notification', {
+                    success: result.success,
+                    dataType: dataType,
+                    message: result.success 
+                        ? `${dataType === 'exercise' ? '运动' : '饮食'}数据已同步` 
+                        : `同步失败: ${result.error || '未知错误'}`
+                });
+            });
+            
+            if (result.success) {
+                console.log(`${dataType === 'exercise' ? '运动' : '饮食'}数据自动同步成功`);
+            } else {
+                console.error(`${dataType === 'exercise' ? '运动' : '饮食'}数据自动同步失败:`, result.error);
+            }
+        } catch (error) {
+            console.error('自动同步失败:', error);
+            
+            // 同步失败也发送通知
+            const allWindows = BrowserWindow.getAllWindows();
+            allWindows.forEach(window => {
+                window.webContents.send('sync-notification', {
+                    success: false,
+                    dataType: dataType,
+                    message: '同步失败'
+                });
+            });
+        }
+    })();
+}
+
+async function handleSaveRecord(filePath, record, errorPrefix, dataType) {
     try {
         const records = readJSONFile(filePath, []);
         record.id = Date.now();
@@ -180,6 +237,8 @@ async function handleSaveRecord(filePath, record, errorPrefix) {
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (writeJSONFile(filePath, records)) {
+            // 保存成功后立即触发自动同步（后台异步，不阻塞）
+            autoSyncIfEnabled(dataType);
             return { success: true, record };
         }
         throw new Error('写入文件失败');
@@ -189,11 +248,13 @@ async function handleSaveRecord(filePath, record, errorPrefix) {
     }
 }
 
-async function handleDeleteRecord(filePath, id, errorPrefix) {
+async function handleDeleteRecord(filePath, id, errorPrefix, dataType) {
     try {
         const records = readJSONFile(filePath, []).filter(record => record.id !== id);
         
         if (writeJSONFile(filePath, records)) {
+            // 删除成功后立即触发自动同步（后台异步，不阻塞）
+            autoSyncIfEnabled(dataType);
             return { success: true };
         }
         throw new Error('写入文件失败');
@@ -208,11 +269,11 @@ ipcMain.handle('get-records', async () => {
 });
 
 ipcMain.handle('save-record', async (event, record) => {
-    return handleSaveRecord(DATA_FILE, record, '保存数据失败');
+    return handleSaveRecord(DATA_FILE, record, '保存数据失败', 'exercise');
 });
 
 ipcMain.handle('delete-record', async (event, id) => {
-    return handleDeleteRecord(DATA_FILE, id, '删除数据失败');
+    return handleDeleteRecord(DATA_FILE, id, '删除数据失败', 'exercise');
 });
 
 // IPC 处理器 - 获取数据文件路径
@@ -338,12 +399,12 @@ ipcMain.handle('get-diet-records', async () => {
 
 // IPC 处理器 - 保存饮食记录
 ipcMain.handle('save-diet-record', async (event, record) => {
-    return handleSaveRecord(DIET_DATA_FILE, record, '保存饮食数据失败');
+    return handleSaveRecord(DIET_DATA_FILE, record, '保存饮食数据失败', 'diet');
 });
 
 // IPC 处理器 - 删除饮食记录
 ipcMain.handle('delete-diet-record', async (event, id) => {
-    return handleDeleteRecord(DIET_DATA_FILE, id, '删除饮食数据失败');
+    return handleDeleteRecord(DIET_DATA_FILE, id, '删除饮食数据失败', 'diet');
 });
 
 // ==================== Google 同步功能 ====================

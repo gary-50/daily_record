@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSyncStatus: invoke('get-sync-status'),
     autoSync: invokeWith('auto-sync'),
     
+    // 监听同步通知
+    onSyncNotification: (callback) => {
+        ipcRenderer.on('sync-notification', (event, data) => callback(data));
+    },
+    
     // 代理配置 API
     getProxyConfig: invoke('get-proxy-config'),
     saveProxyConfig: invokeWith('save-proxy-config')

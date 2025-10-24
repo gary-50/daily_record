@@ -2496,6 +2496,71 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// ==================== 同步提示功能 ====================
+
+// 显示同步提示
+function showSyncToast(message, type = 'success') {
+    const container = document.getElementById('syncToastContainer');
+    if (!container) return;
+
+    // 创建提示元素
+    const toast = document.createElement('div');
+    toast.className = `sync-toast ${type}`;
+    
+    // 图标
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('class', 'sync-toast-icon');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('stroke', 'currentColor');
+    
+    if (type === 'success') {
+        // 云同步成功图标
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-10H15a6 6 0 00-12 1v1m0 0l3-3m-3 3l3 3');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        icon.appendChild(path);
+    } else {
+        // 错误图标
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z');
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        icon.appendChild(path);
+    }
+    
+    // 文字
+    const text = document.createElement('span');
+    text.className = 'sync-toast-text';
+    text.textContent = message;
+    
+    toast.appendChild(icon);
+    toast.appendChild(text);
+    container.appendChild(toast);
+    
+    // 2.5秒后自动消失
+    setTimeout(() => {
+        toast.classList.add('hiding');
+        setTimeout(() => {
+            container.removeChild(toast);
+        }, 300); // 等待动画完成
+    }, 2500);
+}
+
+// 监听来自主进程的同步通知
+if (window.electronAPI && window.electronAPI.onSyncNotification) {
+    window.electronAPI.onSyncNotification((data) => {
+        if (data.success) {
+            showSyncToast('已同步到云端 ☁️', 'success');
+        } else {
+            showSyncToast('同步失败', 'error');
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     loadAIConfig();
