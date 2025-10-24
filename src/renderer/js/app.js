@@ -2305,21 +2305,21 @@ function updateGoogleAuthUI(isAuthenticated) {
 // Google 登录
 async function handleGoogleLogin() {
     try {
-        showNotification('正在打开登录窗口...', 'info');
+        showToast('正在打开登录窗口...', 'info');
         const result = await window.electronAPI.googleLogin();
         
         if (result.success) {
             googleUserInfo = result.userInfo;
             isGoogleAuthenticated = true;
             updateGoogleAuthUI(true);
-            showNotification('Google 登录成功！', 'success');
+            showToast('Google 登录成功！', 'success');
             await loadSyncStatus();
         } else {
-            showNotification(`登录失败：${result.error}`, 'error');
+            showToast(`登录失败：${result.error}`, 'error');
         }
     } catch (error) {
         console.error('Google 登录失败:', error);
-        showNotification('登录失败，请重试', 'error');
+        showToast('登录失败，请重试', 'error');
     }
 }
 
@@ -2332,13 +2332,13 @@ async function handleGoogleLogout() {
             isGoogleAuthenticated = false;
             googleUserInfo = null;
             updateGoogleAuthUI(false);
-            showNotification('已登出 Google 账号', 'success');
+            showToast('已登出 Google 账号', 'success');
         } else {
-            showNotification(`登出失败：${result.error}`, 'error');
+            showToast(`登出失败：${result.error}`, 'error');
         }
     } catch (error) {
         console.error('Google 登出失败:', error);
-        showNotification('登出失败，请重试', 'error');
+        showToast('登出失败，请重试', 'error');
     }
 }
 
@@ -2362,7 +2362,7 @@ async function handleManualSync() {
             同步中...
         `;
         
-        showNotification('正在同步数据到云端...', 'info');
+        showToast('正在同步数据到云端...', 'info');
         const result = await window.electronAPI.syncToCloud();
         
         if (result.success) {
@@ -2370,18 +2370,18 @@ async function handleManualSync() {
             const message = conflicts 
                 ? '同步完成（已自动合并冲突）' 
                 : '同步完成';
-            showNotification(message, 'success');
+            showToast(message, 'success');
             await loadSyncStatus();
             
             // 重新加载数据
             loadData();
             loadDietData();
         } else {
-            showNotification(`同步失败：${result.error}`, 'error');
+            showToast(`同步失败：${result.error}`, 'error');
         }
     } catch (error) {
         console.error('同步失败:', error);
-        showNotification('同步失败，请重试', 'error');
+        showToast('同步失败，请重试', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
@@ -2407,13 +2407,13 @@ async function handleSyncStatus() {
                 ${deviceMatch ? '✓ 当前设备' : '⚠ 其他设备'}
             `;
             
-            showNotification(message, 'info', 5000);
+            showToast(message, 'info');
         } else {
-            showNotification(`获取状态失败：${result.error}`, 'error');
+            showToast(`获取状态失败：${result.error}`, 'error');
         }
     } catch (error) {
         console.error('获取同步状态失败:', error);
-        showNotification('获取状态失败', 'error');
+        showToast('获取状态失败', 'error');
     }
 }
 
@@ -2441,7 +2441,7 @@ async function toggleAutoSync(event) {
         if (config.success) {
             config.config.autoSyncOnStart = enabled;
             await window.electronAPI.saveGoogleConfig(config.config);
-            showNotification(
+            showToast(
                 enabled ? '已启用启动时自动同步' : '已关闭启动时自动同步',
                 'success'
             );
@@ -2482,6 +2482,78 @@ function bindGoogleSyncEvents() {
     }
 }
 
+// ==================== 代理配置功能 ====================
+
+// 加载代理配置
+async function loadProxyConfig() {
+    try {
+        const result = await window.electronAPI.getProxyConfig();
+        if (result.success && result.config) {
+            const proxyEnabled = document.getElementById('proxyEnabled');
+            const proxyUrl = document.getElementById('proxyUrl');
+            const proxyUrlGroup = document.getElementById('proxyUrlGroup');
+            
+            if (proxyEnabled) {
+                proxyEnabled.checked = result.config.enabled || false;
+            }
+            if (proxyUrl) {
+                proxyUrl.value = result.config.url || '';
+            }
+            if (proxyUrlGroup) {
+                proxyUrlGroup.style.display = result.config.enabled ? 'block' : 'none';
+            }
+        }
+    } catch (error) {
+        console.error('加载代理配置失败:', error);
+    }
+}
+
+// 保存代理配置
+async function saveProxyConfig(event) {
+    event.preventDefault();
+    
+    const proxyEnabled = document.getElementById('proxyEnabled');
+    const proxyUrl = document.getElementById('proxyUrl');
+    
+    const config = {
+        enabled: proxyEnabled.checked,
+        url: proxyUrl.value.trim()
+    };
+    
+    if (config.enabled && !config.url) {
+        showToast('请填写代理地址', 'error');
+        return;
+    }
+    
+    try {
+        const result = await window.electronAPI.saveProxyConfig(config);
+        if (result.success) {
+            showToast('代理配置已保存！请重启应用使代理生效。', 'success');
+        } else {
+            showToast(`保存失败：${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('保存代理配置失败:', error);
+        showToast('保存代理配置失败', 'error');
+    }
+}
+
+// 绑定代理配置事件
+function bindProxyEvents() {
+    const proxyConfigForm = document.getElementById('proxyConfigForm');
+    if (proxyConfigForm) {
+        proxyConfigForm.addEventListener('submit', saveProxyConfig);
+    }
+    
+    const proxyEnabled = document.getElementById('proxyEnabled');
+    const proxyUrlGroup = document.getElementById('proxyUrlGroup');
+    if (proxyEnabled && proxyUrlGroup) {
+        proxyEnabled.addEventListener('change', () => {
+            proxyUrlGroup.style.display = proxyEnabled.checked ? 'block' : 'none';
+        });
+    }
+}
+
 // 添加旋转动画的样式（如果还没有）
 const style = document.createElement('style');
 style.textContent = `
@@ -2507,4 +2579,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadGoogleConfig();
     checkGoogleAuthStatus();
     bindGoogleSyncEvents();
+    
+    // 初始化代理配置
+    loadProxyConfig();
+    bindProxyEvents();
 });

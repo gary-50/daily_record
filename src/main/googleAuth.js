@@ -51,36 +51,49 @@ class GoogleAuth {
             authWindow.loadURL(authUrl);
 
             const handleCallback = async (url) => {
-                const urlParams = new URL(url);
-                const code = urlParams.searchParams.get('code');
-                const error = urlParams.searchParams.get('error');
+                try {
+                    const urlParams = new URL(url);
+                    const code = urlParams.searchParams.get('code');
+                    const error = urlParams.searchParams.get('error');
 
-                if (error) {
-                    reject(new Error(`认证失败: ${error}`));
-                    authWindow.close();
-                    return;
-                }
-
-                if (code) {
-                    try {
-                        const { tokens } = await this.oauth2Client.getToken(code);
-                        this.oauth2Client.setCredentials(tokens);
-                        this.isAuthenticated = true;
-                        
-                        await this.getUserInfo();
-                        
+                    if (error) {
+                        reject(new Error(`认证失败: ${error}`));
                         authWindow.close();
-                        resolve({
-                            success: true,
-                            tokens,
-                            userInfo: this.userInfo
-                        });
-                    } catch (err) {
-                        reject(err);
-                        authWindow.close();
+                        return;
                     }
+
+                    if (code) {
+                        try {
+                            const { tokens } = await this.oauth2Client.getToken(code);
+                            this.oauth2Client.setCredentials(tokens);
+                            this.isAuthenticated = true;
+                            
+                            await this.getUserInfo();
+                            
+                            authWindow.close();
+                            resolve({
+                                success: true,
+                                tokens,
+                                userInfo: this.userInfo
+                            });
+                        } catch (err) {
+                            console.error('Token交换失败:', err.message);
+                            reject(err);
+                            authWindow.close();
+                        }
+                    }
+                } catch (parseError) {
+                    console.error('URL解析失败:', parseError);
                 }
             };
+
+            // 监听导航事件
+            authWindow.webContents.on('will-navigate', (event, url) => {
+                if (url.startsWith('http://localhost')) {
+                    event.preventDefault();
+                    handleCallback(url);
+                }
+            });
 
             authWindow.webContents.on('will-redirect', (event, url) => {
                 if (url.startsWith('http://localhost')) {
@@ -92,6 +105,13 @@ class GoogleAuth {
             authWindow.webContents.on('did-get-redirect-request', (event, oldUrl, newUrl) => {
                 if (newUrl.startsWith('http://localhost')) {
                     handleCallback(newUrl);
+                }
+            });
+
+            // 监听所有导航尝试（最关键的事件，用于捕获localhost重定向）
+            authWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+                if (validatedURL.startsWith('http://localhost')) {
+                    handleCallback(validatedURL);
                 }
             });
 

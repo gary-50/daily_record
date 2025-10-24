@@ -2,7 +2,7 @@
 
 > 基于 Electron 的桌面应用，用于记录和管理日常运动与饮食数据。
 
-![Version](https://img.shields.io/badge/version-3.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.1-blue.svg)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-ISC-orange.svg)
 
@@ -57,6 +57,14 @@
 - **冲突解决**：智能选择最新数据，避免重复
 - **增量更新**：只同步变化的数据，节省流量
 - **隐私保护**：数据存储在 Google Drive appDataFolder，仅应用可访问
+
+### 🌐 网络代理支持（v3.3.1 新增）
+- **应用内代理配置**：支持 HTTP、HTTPS、SOCKS5 代理协议
+- **双重代理机制**：同时支持浏览器和 Node.js 环境的代理
+- **可视化配置**：在设置页面轻松配置代理地址
+- **持久化存储**：代理设置自动保存，重启生效
+- **中国大陆支持**：为中国大陆用户提供详细的代理配置指引
+- **常见软件适配**：提供 Clash、V2Ray、Shadowsocks 的配置示例
 
 ## 🚀 快速开始
 

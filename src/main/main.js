@@ -103,8 +103,34 @@ app.whenReady().then(async () => {
     loadConfig();  // 先加载配置
     ensureDataFile();
     
-    // 初始化 Google Auth（如果已配置）
+    // 读取配置文件（用于代理和Google Auth）
     const config = readJSONFile(CONFIG_FILE, {});
+    
+    // 检查并设置代理
+    if (config.proxy && config.proxy.enabled && config.proxy.url) {
+        console.log('设置代理:', config.proxy.url);
+        
+        // 1. 为Electron浏览器窗口设置代理
+        try {
+            const session = require('electron').session;
+            await session.defaultSession.setProxy({
+                proxyRules: config.proxy.url
+            });
+            console.log('Electron代理设置成功');
+        } catch (err) {
+            console.error('设置Electron代理失败:', err.message);
+        }
+        
+        // 2. 为Node.js HTTP/HTTPS请求设置代理（重要！用于googleapis）
+        const proxyUrl = config.proxy.url;
+        process.env.HTTP_PROXY = proxyUrl;
+        process.env.HTTPS_PROXY = proxyUrl;
+        process.env.http_proxy = proxyUrl;
+        process.env.https_proxy = proxyUrl;
+        console.log('Node.js代理环境变量已设置');
+    }
+    
+    // 初始化 Google Auth（如果已配置）
     if (config.googleConfig && config.googleConfig.enabled) {
         initializeGoogleAuth(config.googleConfig);
         
@@ -393,7 +419,13 @@ ipcMain.handle('google-login', async () => {
                 };
             }
             // 使用环境变量中的凭据初始化
-            initializeGoogleAuth(config.googleConfig);
+            const initResult = initializeGoogleAuth(config.googleConfig);
+            if (!initResult) {
+                return {
+                    success: false,
+                    error: '初始化 Google Auth 失败'
+                };
+            }
         }
         
         const result = await googleAuth.authenticate();
@@ -560,6 +592,58 @@ ipcMain.handle('auto-sync', async (event, dataType) => {
         return result;
     } catch (error) {
         console.error('自动同步失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC 处理器 - 获取代理配置
+ipcMain.handle('get-proxy-config', async () => {
+    try {
+        const config = readJSONFile(CONFIG_FILE, {});
+        return {
+            success: true,
+            config: config.proxy || {
+                url: '',
+                enabled: false
+            }
+        };
+    } catch (error) {
+        console.error('获取代理配置失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC 处理器 - 保存代理配置
+ipcMain.handle('save-proxy-config', async (event, proxyConfig) => {
+    try {
+        const config = readJSONFile(CONFIG_FILE, {});
+        config.proxy = proxyConfig;
+        
+        if (saveConfig(config)) {
+            // 立即应用代理设置（需要确保在app ready之后）
+            if (app.isReady()) {
+                try {
+                    if (proxyConfig.enabled && proxyConfig.url) {
+                        await app.session.defaultSession.setProxy({
+                            proxyRules: proxyConfig.url
+                        });
+                        console.log('代理已更新:', proxyConfig.url);
+                    } else {
+                        await app.session.defaultSession.setProxy({
+                            proxyRules: 'direct://'
+                        });
+                        console.log('代理已禁用');
+                    }
+                } catch (proxyError) {
+                    console.error('设置代理失败:', proxyError);
+                    // 即使设置代理失败，配置也已保存，重启后生效
+                }
+            }
+            return { success: true };
+        }
+        throw new Error('保存配置失败');
+    } catch (error) {
+        console.error('保存代理配置失败:', error);
         return { success: false, error: error.message };
     }
 });

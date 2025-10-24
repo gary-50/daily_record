@@ -25,5 +25,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkGoogleAuth: invoke('check-google-auth'),
     syncToCloud: invoke('sync-to-cloud'),
     getSyncStatus: invoke('get-sync-status'),
-    autoSync: invokeWith('auto-sync')
+    autoSync: invokeWith('auto-sync'),
+    
+    // 代理配置 API
+    getProxyConfig: invoke('get-proxy-config'),
+    saveProxyConfig: invokeWith('save-proxy-config')
 });

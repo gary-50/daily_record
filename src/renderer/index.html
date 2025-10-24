@@ -703,6 +703,54 @@
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        网络代理设置
+                    </h3>
+                    <form id="proxyConfigForm">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="proxyEnabled" style="width: auto;">
+                                <span>启用代理</span>
+                            </label>
+                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">如果您无法访问Google服务，请启用代理</small>
+                        </div>
+                        <div class="form-group" id="proxyUrlGroup" style="display: none;">
+                            <label for="proxyUrl">代理地址</label>
+                            <input type="text" id="proxyUrl" placeholder="例如：http://127.0.0.1:7890 或 socks5://127.0.0.1:1080">
+                            <small style="color: #666; font-size: 12px;">
+                                支持格式：<br>
+                                • HTTP: http://127.0.0.1:7890<br>
+                                • HTTPS: https://127.0.0.1:7890<br>
+                                • SOCKS5: socks5://127.0.0.1:1080
+                            </small>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            保存代理配置
+                        </button>
+                    </form>
+                    <div class="settings-hint">
+                        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <p>
+                            <strong>代理配置说明：</strong><br>
+                            1. 如果您在中国大陆，需要启用代理才能使用Google云同步功能<br>
+                            2. 代理地址从您的代理软件（如 Clash、V2Ray）中获取<br>
+                            3. 配置完成后需要重启应用才能生效<br>
+                            4. 常见代理软件的默认端口：<br>
+                            &nbsp;&nbsp;&nbsp;• Clash: 7890<br>
+                            &nbsp;&nbsp;&nbsp;• V2Ray: 1080 (SOCKS5) 或 10809 (HTTP)
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M3 12h4l3 9 4-18 3 9h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         Google Drive 云同步
