@@ -610,9 +610,10 @@
         <div class="page" id="settingsPage">
             <div class="page-header">
                 <h2>设置</h2>
-                <p class="page-subtitle">配置您的应用选项</p>
+                <p class="page-subtitle">个性化配置您的应用</p>
             </div>
 
+            <!-- 外观设置 -->
             <div class="content-card">
                 <div class="form-section">
                     <h3 class="section-title">
@@ -661,113 +662,28 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
+            <!-- 云同步设置 -->
+            <div class="content-card" style="margin-top: 1.5rem;">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        AI 配置
-                    </h3>
-                    <form id="aiConfigForm">
-                        <div class="form-group">
-                            <label for="aiApiUrl">API 地址</label>
-                            <input type="text" id="aiApiUrl" placeholder="例如：https://api.openai.com/v1/chat/completions">
-                            <small style="color: #666; font-size: 12px;">支持 OpenAI、Claude、Ollama 等兼容接口</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="aiApiKey">API Key</label>
-                            <input type="password" id="aiApiKey" placeholder="输入您的 API Key">
-                            <small style="color: #666; font-size: 12px;">API Key 将加密保存在本地，不会上传</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="aiModel">模型名称</label>
-                            <input type="text" id="aiModel" placeholder="例如：gpt-4、claude-3-opus、llama3">
-                            <small style="color: #666; font-size: 12px;">根据您使用的 API 服务填写对应的模型名称</small>
-                        </div>
-                        <button type="submit" class="btn-primary">
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            保存 AI 配置
-                        </button>
-                    </form>
-                    <div class="settings-hint">
-                        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <p>配置完成后，可以在"AI 助手"页面与 AI 对话。如果使用 Ollama 本地模型，API 地址通常为 http://localhost:11434/api/chat</p>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h3 class="section-title">
-                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        网络代理设置
-                    </h3>
-                    <form id="proxyConfigForm">
-                        <div class="form-group">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                <input type="checkbox" id="proxyEnabled" style="width: auto;">
-                                <span>启用代理</span>
-                            </label>
-                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">如果您无法访问Google服务，请启用代理</small>
-                        </div>
-                        <div class="form-group" id="proxyUrlGroup" style="display: none;">
-                            <label for="proxyUrl">代理地址</label>
-                            <input type="text" id="proxyUrl" placeholder="例如：http://127.0.0.1:7890 或 socks5://127.0.0.1:1080">
-                            <small style="color: #666; font-size: 12px;">
-                                支持格式：<br>
-                                • HTTP: http://127.0.0.1:7890<br>
-                                • HTTPS: https://127.0.0.1:7890<br>
-                                • SOCKS5: socks5://127.0.0.1:1080
-                            </small>
-                        </div>
-                        <button type="submit" class="btn-primary">
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            保存代理配置
-                        </button>
-                    </form>
-                    <div class="settings-hint">
-                        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <p>
-                            <strong>代理配置说明：</strong><br>
-                            1. 如果您在中国大陆，需要启用代理才能使用Google云同步功能<br>
-                            2. 代理地址从您的代理软件（如 Clash、V2Ray）中获取<br>
-                            3. 配置完成后需要重启应用才能生效<br>
-                            4. 常见代理软件的默认端口：<br>
-                            &nbsp;&nbsp;&nbsp;• Clash: 7890<br>
-                            &nbsp;&nbsp;&nbsp;• V2Ray: 1080 (SOCKS5) 或 10809 (HTTP)
-                        </p>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h3 class="section-title">
-                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M3 12h4l3 9 4-18 3 9h4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         Google Drive 云同步
                     </h3>
                     
-                    <!-- Google 登录状态 -->
                     <div class="settings-item google-auth-status" id="googleAuthStatus">
                         <div class="settings-description">
                             <p class="settings-label">账号状态</p>
                             <p class="settings-value" id="googleUserInfo">未登录</p>
-                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">点击登录按钮，使用您的 Google 账号授权即可启用云同步</small>
                         </div>
                         <button class="btn-primary" id="googleLoginBtn">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5m0 0l-5-5m5 5H3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            登录 Google
+                            登录
                         </button>
                         <button class="btn-secondary" id="googleLogoutBtn" style="display:none;">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -777,13 +693,12 @@
                         </button>
                     </div>
 
-                    <!-- 同步操作区 -->
                     <div class="google-sync-actions" id="googleSyncActions" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
                         <div class="sync-status-info" id="syncStatusInfo">
-                            <p style="margin-bottom: 0.5rem;"><strong>同步状态</strong></p>
-                            <p style="color: #666; font-size: 14px;" id="lastSyncTime">从未同步</p>
+                            <p class="settings-label">同步状态</p>
+                            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 0.25rem;" id="lastSyncTime">从未同步</p>
                         </div>
-                        <div class="sync-buttons" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <div class="sync-buttons" style="display: flex; gap: 0.75rem; margin-top: 1rem;">
                             <button class="btn-primary" id="manualSyncBtn">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -794,69 +709,108 @@
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
-                                查看同步状态
+                                查看状态
                             </button>
                         </div>
-                        <div class="form-group" style="margin-top: 1.5rem;">
+                        <div style="margin-top: 1rem;">
                             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                                 <input type="checkbox" id="autoSyncCheckbox" style="width: auto;">
                                 <span>启动时自动同步</span>
                             </label>
-                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">应用启动时自动检查云端数据并同步</small>
                         </div>
-                    </div>
-
-                    <div class="settings-hint">
-                        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <p>
-                            <strong>使用说明：</strong><br>
-                            1. 点击"登录 Google"按钮<br>
-                            2. 在弹出窗口中选择您的 Google 账号<br>
-                            3. 授权应用访问您的 Google Drive<br>
-                            4. 登录成功后即可使用云同步功能<br>
-                            <br>
-                            <strong>功能特点：</strong><br>
-                            • 智能增量同步，节省流量<br>
-                            • 支持多设备数据同步<br>
-                            • 自动解决冲突<br>
-                            • 数据加密存储在您的 Google Drive 中<br>
-                            <br>
-                            <strong>开发者注意：</strong><br>
-                            如需自行配置，请复制 .env.example 为 .env 并填入您的 Google OAuth 凭据
-                        </p>
                     </div>
                 </div>
 
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        网络代理
+                    </h3>
+                    <form id="proxyConfigForm">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="proxyEnabled" style="width: auto;">
+                                <span>启用代理（用于访问Google服务）</span>
+                            </label>
+                        </div>
+                        <div class="form-group" id="proxyUrlGroup" style="display: none;">
+                            <label for="proxyUrl">代理地址</label>
+                            <input type="text" id="proxyUrl" placeholder="http://127.0.0.1:7890">
+                            <small style="color: var(--text-muted); font-size: 12px;">支持 HTTP、HTTPS、SOCKS5 协议，配置后需重启应用</small>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            保存
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- AI 助手配置 -->
+            <div class="content-card" style="margin-top: 1.5rem;">
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        AI 助手配置
+                    </h3>
+                    <form id="aiConfigForm">
+                        <div class="form-group">
+                            <label for="aiApiUrl">API 地址</label>
+                            <input type="text" id="aiApiUrl" placeholder="https://api.openai.com/v1/chat/completions">
+                            <small style="color: var(--text-muted); font-size: 12px;">支持 OpenAI、Claude、Ollama 等兼容接口</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="aiApiKey">API Key</label>
+                            <input type="password" id="aiApiKey" placeholder="sk-...">
+                            <small style="color: var(--text-muted); font-size: 12px;">密钥将加密保存在本地</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="aiModel">模型名称</label>
+                            <input type="text" id="aiModel" placeholder="gpt-4">
+                            <small style="color: var(--text-muted); font-size: 12px;">根据使用的服务填写模型名称</small>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            保存
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 数据管理 -->
+            <div class="content-card" style="margin-top: 1.5rem;">
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        数据存储位置
+                        数据存储
                     </h3>
                     <div class="settings-item">
                         <div class="settings-description">
-                            <p class="settings-label">当前数据存储目录</p>
-                            <p class="settings-value" id="currentDataPath" style="cursor: help;" title="鼠标悬停查看详细文件路径">加载中...</p>
-                            <small style="color: #666; font-size: 12px; margin-top: 6px; display: block;">此目录包含锻炼记录和饮食记录两个数据文件</small>
+                            <p class="settings-label">存储位置</p>
+                            <p class="settings-value" id="currentDataPath" style="cursor: help;" title="点击查看完整路径">加载中...</p>
                         </div>
                         <button class="btn-secondary" id="changeDataPathBtn">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            更改存储目录
+                            更改目录
                         </button>
                     </div>
-                    <div class="settings-hint">
-                        <svg class="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <p>更改数据存储目录后，所有数据文件（锻炼记录和饮食记录）都会被复制到新目录。建议选择一个安全且方便备份的位置。</p>
-                    </div>
                 </div>
+            </div>
 
+            <!-- 关于 -->
+            <div class="content-card" style="margin-top: 1.5rem;">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -866,8 +820,8 @@
                     </h3>
                     <div class="settings-about">
                         <h4>日常记录系统</h4>
-                        <p>版本：3.3.0</p>
-                        <p>基于 Electron 的桌面应用，用于记录和管理日常生活数据，包括锻炼和饮食。</p>
+                        <p style="color: var(--text-muted); margin: 0.5rem 0;">版本 3.3.2</p>
+                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">基于 Electron 开发的桌面应用，用于记录和管理日常锻炼与饮食数据。</p>
                     </div>
                 </div>
             </div>

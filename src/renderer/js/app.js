@@ -3,7 +3,12 @@ const CONSTANTS = {
     TOAST_DURATION: 3000,
     TOAST_FADE_OUT: 2700,
     DEFAULT_DATE_RANGE: 30,
-    COUNT_ANIMATION_DURATION: 1000
+    COUNT_ANIMATION_DURATION: 1000,
+    HEATMAP_DAYS: 364,
+    HEATMAP_TOTAL_CELLS: 371,
+    MAX_INPUT_HEIGHT: 120,
+    SUMMARY_TEXT_LIMIT: 30,
+    SUMMARY_TEXT_LIMIT_DIET: 20
 };
 
 let exerciseData = [];
@@ -84,35 +89,29 @@ function switchPage(pageName) {
 
     const targetPage = document.getElementById(pageName + 'Page');
     const targetNav = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-    
-    // 立即隐藏所有页面
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-    
-    // 更新导航状态
+
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+
     if (targetNav) targetNav.classList.add('active');
 
-    // 显示新页面并播放进入动画
     if (targetPage) {
-        requestAnimationFrame(() => {
-            targetPage.classList.add('active');
-        });
+        requestAnimationFrame(() => targetPage.classList.add('active'));
     }
 
     currentPage = pageName;
 
-    // 延迟加载数据，等待动画完成
     if (pageName === 'stats') {
         setTimeout(() => {
             updateEmptyStates();
             renderHeatmap();
             updateCharts();
-        }, 150);
+        }, CONSTANTS.CHART_SCROLL_DELAY);
     } else if (pageName === 'history') {
-        setTimeout(updateEmptyStates, 150);
-        setTimeout(updateDietEmptyState, 150);
+        setTimeout(() => {
+            updateEmptyStates();
+            updateDietEmptyState();
+        }, CONSTANTS.CHART_SCROLL_DELAY);
     }
 }
 
@@ -312,17 +311,17 @@ function secondsToTime(totalSeconds) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-function showToast(message, type = 'success') {
-    const iconMap = {
-        success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>',
-        info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-    };
+const TOAST_ICONS = {
+    success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>',
+    info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
 
+function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `
-        ${iconMap[type]}
+        ${TOAST_ICONS[type]}
         <div class="toast-message">${message}</div>
         <button class="toast-close">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -343,19 +342,11 @@ function showToast(message, type = 'success') {
     }, CONSTANTS.TOAST_DURATION);
 }
 
-/**
- * 显示确认对话框（非阻塞）
- * @param {string} message - 确认消息
- * @param {string} title - 对话框标题
- * @returns {Promise<boolean>} - 返回用户的选择
- */
 function showConfirm(message, title = '确认操作') {
     return new Promise((resolve) => {
-        // 创建遮罩层
         const overlay = document.createElement('div');
         overlay.className = 'confirm-overlay';
 
-        // 创建对话框
         const dialog = document.createElement('div');
         dialog.className = 'confirm-dialog';
 
@@ -390,10 +381,8 @@ function showConfirm(message, title = '确认操作') {
         overlay.appendChild(dialog);
         document.body.appendChild(overlay);
 
-        // 阻止对话框点击冒泡
         dialog.onclick = (e) => e.stopPropagation();
 
-        // 处理按钮点击
         const handleClick = (confirmed) => {
             overlay.style.animation = 'fadeOut 0.2s ease';
             setTimeout(() => {
@@ -402,14 +391,10 @@ function showConfirm(message, title = '确认操作') {
             }, 200);
         };
 
-        // 绑定按钮事件
         dialog.querySelector('[data-action="cancel"]').onclick = () => handleClick(false);
         dialog.querySelector('[data-action="confirm"]').onclick = () => handleClick(true);
-
-        // 点击遮罩层关闭
         overlay.onclick = () => handleClick(false);
 
-        // ESC 键关闭
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
                 handleClick(false);
@@ -1406,56 +1391,48 @@ function animateNumber(element, targetValue, duration = CONSTANTS.COUNT_ANIMATIO
     requestAnimationFrame(update);
 }
 
-// 热力图功能
 function renderHeatmap() {
     if (!DOM.heatmapGrid || exerciseData.length === 0) return;
-    
+
     DOM.heatmapGrid.innerHTML = '';
-    
-    // 生成过去52周（364天）的日期
+
     const today = new Date();
     const startDate = new Date(today);
-    startDate.setDate(today.getDate() - 364);
-    
-    // 调整到周日开始
+    startDate.setDate(today.getDate() - CONSTANTS.HEATMAP_DAYS);
+
     const dayOfWeek = startDate.getDay();
     startDate.setDate(startDate.getDate() - dayOfWeek);
-    
-    // 创建日期-运动强度映射
+
     const exerciseMap = {};
     exerciseData.forEach(record => {
-        const score = (record.runDistance || 0) + 
-                     (record.pushups || 0) * 0.01 + 
-                     (record.squats || 0) * 0.01 + 
+        const score = (record.runDistance || 0) +
+                     (record.pushups || 0) * 0.01 +
+                     (record.squats || 0) * 0.01 +
                      (record.mountainClimbers || 0) * 0.01;
         exerciseMap[record.date] = score;
     });
-    
-    // 计算强度级别阈值
+
     const scores = Object.values(exerciseMap);
     const maxScore = Math.max(...scores, 1);
-    
-    // 生成热力图格子
-    for (let i = 0; i < 371; i++) {
+
+    for (let i = 0; i < CONSTANTS.HEATMAP_TOTAL_CELLS; i++) {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + i);
-        
+
         const dateStr = date.toISOString().split('T')[0];
         const score = exerciseMap[dateStr] || 0;
-        
-        // 计算级别 (0-4)
+
         let level = 0;
         if (score > 0) {
             level = Math.min(Math.ceil((score / maxScore) * 4), 4);
         }
-        
+
         const cell = document.createElement('div');
         cell.className = 'heatmap-day';
         cell.setAttribute('data-level', level);
         cell.setAttribute('data-date', dateStr);
         cell.setAttribute('data-score', score.toFixed(2));
-        
-        // 添加hover事件
+
         cell.addEventListener('mouseenter', showHeatmapTooltip);
         cell.addEventListener('mouseleave', hideHeatmapTooltip);
         cell.addEventListener('click', () => {
@@ -1463,7 +1440,7 @@ function renderHeatmap() {
             handleSearch({ target: DOM.recordSearch });
             switchPage('history');
         });
-        
+
         DOM.heatmapGrid.appendChild(cell);
     }
 }
@@ -1510,22 +1487,15 @@ function hideHeatmapTooltip() {
     }
 }
 
-// 骨架屏功能
 function showSkeletonLoading() {
     if (currentPage === 'stats' && DOM.statsGrid) {
-        DOM.statsGrid.innerHTML = `
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-            <div class="skeleton skeleton-card"></div>
-        `;
+        const skeletonCards = Array(6).fill('<div class="skeleton skeleton-card"></div>').join('');
+        DOM.statsGrid.innerHTML = skeletonCards;
     }
 }
 
 function hideSkeletonLoading() {
-    // 骨架屏会被实际内容替换，所以不需要特别清理
+    // Skeleton will be replaced by actual content
 }
 
 // ==================== AI 助手功能 ====================
@@ -1747,7 +1717,11 @@ async function callAIStreaming(systemPrompt, userMessage, onChunk) {
     }
 }
 
-// 获取最近数据摘要
+function truncateText(text, limit) {
+    if (!text) return '-';
+    return text.length > limit ? text.substring(0, limit) + '...' : text;
+}
+
 function getRecentDataSummary() {
     if (exerciseData.length === 0) {
         return '用户暂无运动记录。';
@@ -1812,7 +1786,7 @@ function getRecentDataSummary() {
             const sets = record.sets || 0;
             const pacePerSet = record.pacePerSet || '-';
             details = `${distancePerSet}米×${sets}组, 配速:${pacePerSet}`;
-            notes = record.speedEnduranceNotes ? record.speedEnduranceNotes.substring(0, 30) + (record.speedEnduranceNotes.length > 30 ? '...' : '') : '-';
+            notes = truncateText(record.speedEnduranceNotes, CONSTANTS.SUMMARY_TEXT_LIMIT);
         } else {
             type = '长跑';
             const distance = record.runDistance > 0 ? record.runDistance.toFixed(2) + 'km' : '-';
@@ -1820,7 +1794,7 @@ function getRecentDataSummary() {
             const duration = durationSeconds > 0 ? secondsToTime(durationSeconds) : '-';
             const pace = calculatePace(durationSeconds, record.runDistance);
             details = `距离:${distance}, 时长:${duration}, 配速:${pace}`;
-            notes = record.feeling ? record.feeling.substring(0, 30) + (record.feeling.length > 30 ? '...' : '') : '-';
+            notes = truncateText(record.feeling, CONSTANTS.SUMMARY_TEXT_LIMIT);
         }
         
         summary += `${date} | ${type} | ${runTime} | ${details} | ${pushups} | ${squats} | ${mountainClimbers} | ${notes}\n`;
@@ -1849,13 +1823,13 @@ function getDietDataSummary() {
         const date = record.date;
         const breakfastTime = record.breakfast?.time || '-';
         const breakfastFoods = record.breakfast?.foods || '-';
-        const breakfastNotes = record.breakfast?.notes ? record.breakfast.notes.substring(0, 20) + (record.breakfast.notes.length > 20 ? '...' : '') : '-';
+        const breakfastNotes = truncateText(record.breakfast?.notes, CONSTANTS.SUMMARY_TEXT_LIMIT_DIET);
         const lunchTime = record.lunch?.time || '-';
         const lunchFoods = record.lunch?.foods || '-';
-        const lunchNotes = record.lunch?.notes ? record.lunch.notes.substring(0, 20) + (record.lunch.notes.length > 20 ? '...' : '') : '-';
+        const lunchNotes = truncateText(record.lunch?.notes, CONSTANTS.SUMMARY_TEXT_LIMIT_DIET);
         const dinnerTime = record.dinner?.time || '-';
         const dinnerFoods = record.dinner?.foods || '-';
-        const dinnerNotes = record.dinner?.notes ? record.dinner.notes.substring(0, 20) + (record.dinner.notes.length > 20 ? '...' : '') : '-';
+        const dinnerNotes = truncateText(record.dinner?.notes, CONSTANTS.SUMMARY_TEXT_LIMIT_DIET);
         
         summary += `${date} | ${breakfastTime} | ${breakfastFoods} | ${breakfastNotes} | ${lunchTime} | ${lunchFoods} | ${lunchNotes} | ${dinnerTime} | ${dinnerFoods} | ${dinnerNotes}\n`;
     });
@@ -1958,108 +1932,74 @@ function finalizeAIStreamingMessage(messageElement) {
     }
 }
 
-// 格式化AI消息（支持完整的markdown）
 function formatAIMessage(content) {
-    // 转义HTML标签
     content = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    // 代码块 ```language\ncode\n```
+
     content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
         return `<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`;
     });
-    
-    // 行内代码 `code`
+
     content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
-    
-    // 标题 ### Title
+
     content = content.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
     content = content.replace(/^### (.+)$/gm, '<h3>$1</h3>');
     content = content.replace(/^## (.+)$/gm, '<h2>$1</h2>');
     content = content.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-    
-    // 加粗 **text**
+
     content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    
-    // 斜体 *text*（避免与列表冲突）
     content = content.replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
-    
-    // 无序列表 - item 或 * item
+
     content = content.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
     content = content.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-    
-    // 有序列表 1. item
     content = content.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
-    
-    // 链接 [text](url)
+
     content = content.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-    
-    // 水平线 ---
     content = content.replace(/^---$/gm, '<hr>');
-    
-    // 引用 > text
     content = content.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-    
-    // 表格处理（简单实现）
-    // 先移除表格分隔符行（如 |-----|-----|）
+
     content = content.replace(/^\|[\s\-:|]+\|$/gm, '');
-    
-    // 转换表格行
     content = content.replace(/^\|(.+)\|$/gm, (match) => {
         const cells = match.split('|').filter(cell => cell.trim());
         const cellsHtml = cells.map(cell => `<td>${cell.trim()}</td>`).join('');
         return `<tr>${cellsHtml}</tr>`;
     });
     content = content.replace(/(<tr>.*<\/tr>\n?)+/g, '<table class="ai-table">$&</table>');
-    
-    // 清理块级元素周围的多余换行符，避免产生过多空白
-    // 1. 先将多个连续换行统一为最多两个
+
     content = content.replace(/\n{3,}/g, '\n\n');
-    
-    // 2. 移除块级开始标签前的换行
     content = content.replace(/\n+(<(h[1-6]|table|ul|ol|blockquote|pre|hr)>)/g, '\n$1');
-    
-    // 3. 移除块级结束标签后的多余换行，只保留一个
     content = content.replace(/(<\/(h[1-6]|table|ul|ol|blockquote|pre)>)\n+/g, '$1\n');
     content = content.replace(/(<hr>)\n+/g, '$1\n');
-    
-    // 4. 移除表格内部的换行（表格行之间）
     content = content.replace(/(<\/tr>)\n+(<tr>)/g, '$1$2');
-    
-    // 5. 按行分割，处理每一行
+
     const lines = content.split('\n').filter(line => line.trim());
     const result = [];
     let inParagraph = false;
     let paragraphLines = [];
-    
-    lines.forEach((line, index) => {
-        // 检查是否是块级元素
+
+    lines.forEach((line) => {
         const isBlockStart = line.match(/^<(h[1-6]|table|ul|ol|blockquote|pre|hr)/);
         const isBlockEnd = line.match(/<\/(h[1-6]|table|ul|ol|blockquote|pre)>$/) || line.match(/<hr>$/);
         const isBlock = isBlockStart || isBlockEnd;
-        
+
         if (isBlock) {
-            // 如果正在段落中，先结束段落
             if (inParagraph && paragraphLines.length > 0) {
                 result.push('<p>' + paragraphLines.join('<br>') + '</p>');
                 paragraphLines = [];
                 inParagraph = false;
             }
-            // 添加块级元素
             result.push(line);
         } else {
-            // 普通文本，加入段落
             if (!inParagraph) {
                 inParagraph = true;
             }
             paragraphLines.push(line);
         }
     });
-    
-    // 处理最后剩余的段落
+
     if (paragraphLines.length > 0) {
         result.push('<p>' + paragraphLines.join('<br>') + '</p>');
     }
-    
+
     return result.join('');
 }
 
@@ -2218,10 +2158,9 @@ function bindAIEvents() {
             }
         });
         
-        // 自动调整输入框高度
         aiChatInput.addEventListener('input', () => {
             aiChatInput.style.height = 'auto';
-            aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, 120) + 'px';
+            aiChatInput.style.height = Math.min(aiChatInput.scrollHeight, CONSTANTS.MAX_INPUT_HEIGHT) + 'px';
         });
     }
     
@@ -2342,17 +2281,14 @@ async function handleGoogleLogout() {
     }
 }
 
-// 保存 Google 配置（已移除配置表单，保留函数以防兼容性问题）
-async function saveGoogleConfig(event) {
+function saveGoogleConfig(event) {
     if (event) event.preventDefault();
-    // 配置已硬编码，无需手动保存
 }
 
-// 手动同步
 async function handleManualSync() {
     const btn = document.getElementById('manualSyncBtn');
     const originalText = btn.innerHTML;
-    
+
     try {
         btn.disabled = true;
         btn.innerHTML = `
@@ -2361,19 +2297,16 @@ async function handleManualSync() {
             </svg>
             同步中...
         `;
-        
+
         showToast('正在同步数据到云端...', 'info');
         const result = await window.electronAPI.syncToCloud();
-        
+
         if (result.success) {
             const conflicts = result.results.exercise.conflicts || result.results.diet.conflicts;
-            const message = conflicts 
-                ? '同步完成（已自动合并冲突）' 
-                : '同步完成';
+            const message = conflicts ? '同步完成（已自动合并冲突）' : '同步完成';
             showToast(message, 'success');
             await loadSyncStatus();
-            
-            // 重新加载数据
+
             loadData();
             loadDietData();
         } else {
@@ -2452,30 +2385,27 @@ async function toggleAutoSync(event) {
     }
 }
 
-// 绑定 Google 同步事件
 function bindGoogleSyncEvents() {
-    // 配置表单已移除，无需绑定
-    
     const googleLoginBtn = document.getElementById('googleLoginBtn');
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', handleGoogleLogin);
     }
-    
+
     const googleLogoutBtn = document.getElementById('googleLogoutBtn');
     if (googleLogoutBtn) {
         googleLogoutBtn.addEventListener('click', handleGoogleLogout);
     }
-    
+
     const manualSyncBtn = document.getElementById('manualSyncBtn');
     if (manualSyncBtn) {
         manualSyncBtn.addEventListener('click', handleManualSync);
     }
-    
+
     const syncStatusBtn = document.getElementById('syncStatusBtn');
     if (syncStatusBtn) {
         syncStatusBtn.addEventListener('click', handleSyncStatus);
     }
-    
+
     const autoSyncCheckbox = document.getElementById('autoSyncCheckbox');
     if (autoSyncCheckbox) {
         autoSyncCheckbox.addEventListener('change', toggleAutoSync);
@@ -2554,7 +2484,6 @@ function bindProxyEvents() {
     }
 }
 
-// 添加旋转动画的样式（如果还没有）
 const style = document.createElement('style');
 style.textContent = `
     @keyframes spin {
@@ -2567,20 +2496,15 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ==================== 应用初始化 ====================
-
-// 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
     loadAIConfig();
     bindAIEvents();
-    
-    // 初始化 Google 同步
+
     loadGoogleConfig();
     checkGoogleAuthStatus();
     bindGoogleSyncEvents();
-    
-    // 初始化代理配置
+
     loadProxyConfig();
     bindProxyEvents();
 });
