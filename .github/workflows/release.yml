@@ -27,7 +27,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-0 libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+          sudo apt-get install -y libgtk-3-0 libnotify-dev libnss3 libxss1 libxtst6 xauth xvfb libgbm1
 
       - name: Install dependencies
         run: npm install
