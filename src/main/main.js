@@ -472,14 +472,18 @@ ipcMain.handle('google-login', async () => {
         const config = readJSONFile(CONFIG_FILE, {});
         
         if (!googleAuth) {
-            // 检查环境变量是否配置
-            if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+            // 检查配置文件中的凭据
+            const clientId = config.googleConfig?.clientId || process.env.GOOGLE_CLIENT_ID;
+            const clientSecret = config.googleConfig?.clientSecret || process.env.GOOGLE_CLIENT_SECRET;
+            
+            if (!clientId || !clientSecret) {
                 return { 
                     success: false, 
-                    error: 'Google OAuth 凭据未配置。请确保 .env 文件中设置了 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET' 
+                    error: 'Google OAuth 凭据未配置。请在设置中配置 Client ID 和 Client Secret，或在 .env 文件中设置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET' 
                 };
             }
-            // 使用环境变量中的凭据初始化
+            
+            // 使用凭据初始化
             const initResult = initializeGoogleAuth(config.googleConfig);
             if (!initResult) {
                 return {
@@ -487,6 +491,14 @@ ipcMain.handle('google-login', async () => {
                     error: '初始化 Google Auth 失败'
                 };
             }
+        }
+        
+        // 确保 oauth2Client 已经正确初始化
+        if (!googleAuth || !googleAuth.getClient()) {
+            return {
+                success: false,
+                error: 'Google Auth 未正确初始化'
+            };
         }
         
         const result = await googleAuth.authenticate();
@@ -552,7 +564,15 @@ ipcMain.handle('check-google-auth', async () => {
         }
         
         if (!googleAuth) {
-            initializeGoogleAuth(googleConfig);
+            const initResult = initializeGoogleAuth(googleConfig);
+            if (!initResult) {
+                return { success: true, isAuthenticated: false, needReauth: true };
+            }
+        }
+        
+        // 确保 oauth2Client 已正确初始化
+        if (!googleAuth || !googleAuth.getClient()) {
+            return { success: true, isAuthenticated: false, needReauth: true };
         }
         
         // 检查 token 是否过期
