@@ -19,7 +19,10 @@
     "fitness",
     "electron"
   ],
-  "author": "",
+  "author": {
+    "name": "Daily Record",
+    "email": "daily-record@example.com"
+  },
   "license": "ISC",
   "build": {
     "appId": "com.exercise.tracker",
