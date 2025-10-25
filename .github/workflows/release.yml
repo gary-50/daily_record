@@ -34,15 +34,15 @@ jobs:
 
       - name: Build on Windows
         if: matrix.os == 'windows-latest'
-        run: npm run dist:win
+        run: npm run dist:win -- --publish never
 
       - name: Build on macOS
         if: matrix.os == 'macos-latest'
-        run: npm run dist:mac
+        run: npm run dist:mac -- --publish never
 
       - name: Build on Linux
         if: matrix.os == 'ubuntu-latest'
-        run: npm run dist:linux
+        run: npm run dist:linux -- --publish never
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
