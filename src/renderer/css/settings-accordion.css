@@ -1,0 +1,112 @@
+/* 设置页面折叠式布局样式 */
+
+.settings-section {
+    margin-bottom: 1rem;
+}
+
+.settings-section-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-align: left;
+}
+
+.settings-section-header:hover {
+    background: var(--bg-secondary);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.settings-section-header.active {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-color: transparent;
+}
+
+.settings-section-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.settings-section-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 8px;
+    background: var(--primary-gradient);
+    border-radius: var(--radius-sm);
+    color: white;
+    stroke: white;
+}
+
+.settings-section-header-content h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.settings-section-header-content p {
+    margin: 0.25rem 0 0 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.settings-section-arrow {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    transition: transform 0.3s ease;
+}
+
+.settings-section-header.active .settings-section-arrow {
+    transform: rotate(180deg);
+}
+
+.settings-section-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.settings-section-content.active {
+    max-height: 2000px;
+    transition: max-height 0.5s ease;
+}
+
+.settings-section-content .content-card {
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin-top: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .settings-section-header {
+        padding: 1rem;
+    }
+    
+    .settings-section-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+    
+    .settings-section-header-content h3 {
+        font-size: 15px;
+    }
+    
+    .settings-section-header-content p {
+        font-size: 12px;
+    }
+}

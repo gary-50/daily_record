@@ -2,8 +2,11 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-// 加载环境变量（必须在其他模块之前）
-require('dotenv').config();
+// 加载环境变量（仅开发环境，打包后不使用）
+if (!app.isPackaged) {
+    const envPath = path.join(__dirname, '../../.env');
+    require('dotenv').config({ path: envPath });
+}
 
 const GoogleAuth = require('./googleAuth');
 const DriveSync = require('./driveSync');
@@ -472,14 +475,14 @@ ipcMain.handle('google-login', async () => {
         const config = readJSONFile(CONFIG_FILE, {});
         
         if (!googleAuth) {
-            // 检查配置文件中的凭据
+            // 检查配置文件中的凭据（打包后的应用只从配置文件读取）
             const clientId = config.googleConfig?.clientId || process.env.GOOGLE_CLIENT_ID;
             const clientSecret = config.googleConfig?.clientSecret || process.env.GOOGLE_CLIENT_SECRET;
             
             if (!clientId || !clientSecret) {
                 return { 
                     success: false, 
-                    error: 'Google OAuth 凭据未配置。请在设置中配置 Client ID 和 Client Secret，或在 .env 文件中设置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET' 
+                    error: 'Google OAuth 凭据未配置。请在"设置 > Google同步"中配置您的 Client ID 和 Client Secret。\n\n如需帮助，请查看 GOOGLE_SYNC_GUIDE.md' 
                 };
             }
             

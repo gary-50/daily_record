@@ -2,7 +2,7 @@
 
 > 基于 Electron 的桌面应用，用于记录和管理日常运动与饮食数据。
 
-![Version](https://img.shields.io/badge/version-3.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-3.3.3-blue.svg)
 ![Electron](https://img.shields.io/badge/electron-28.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-ISC-orange.svg)
 
@@ -51,20 +51,24 @@
 - **JSON 格式**：易于备份和手动编辑
 
 ### ☁️ Google Drive 云同步（v3.3 新增）
+- **应用内配置**：在设置页面直接配置 OAuth 凭据，无需修改代码
 - **一键登录**：Google OAuth 2.0 安全认证
-- **智能同步**：启动时自动同步，支持手动触发
+- **自动同步**：保存/删除记录后自动同步到云端，无需手动操作
+- **智能提示**：同步成功/失败时右下角显示优雅提示
+- **启动同步**：应用启动时自动同步最新数据（可选）
 - **多设备支持**：自动合并不同设备的数据
 - **冲突解决**：智能选择最新数据，避免重复
 - **增量更新**：只同步变化的数据，节省流量
-- **隐私保护**：数据存储在 Google Drive appDataFolder，仅应用可访问
+- **隐私保护**：数据存储在您自己的 Google Drive appDataFolder，仅应用可访问
+- **用户凭据**：每个用户使用自己的 Google OAuth 应用，数据完全隔离
 
 ### 🌐 网络代理支持（v3.3.1 新增）
 - **应用内代理配置**：支持 HTTP、HTTPS、SOCKS5 代理协议
 - **双重代理机制**：同时支持浏览器和 Node.js 环境的代理
 - **可视化配置**：在设置页面轻松配置代理地址
+- **折叠式界面**：简洁美观的设置页面，点击展开所需设置
 - **持久化存储**：代理设置自动保存，重启生效
-- **中国大陆支持**：为中国大陆用户提供详细的代理配置指引
-- **常见软件适配**：提供 Clash、V2Ray、Shadowsocks 的配置示例
+- **中国大陆支持**：方便中国大陆用户访问 Google 服务
 
 ## 🚀 快速开始
 
@@ -78,21 +82,12 @@
 # 安装依赖
 npm install
 
-# 配置 Google Drive 同步（可选，如需云同步功能）
-# 1. 复制环境变量模板
-cp .env.example .env
-
-# 2. 编辑 .env 文件，填入你的 Google OAuth 凭据
-# 详细步骤见 GOOGLE_OAUTH_SETUP.md
-
 # 运行应用（生产模式）
 npm start
 
 # 开发模式（带开发者工具）
 npm run dev
 ```
-
-> **提示**：如果不需要 Google Drive 同步功能，可以跳过 `.env` 配置，应用的其他功能仍可正常使用。
 
 ### 打包发布
 
@@ -122,16 +117,19 @@ record/
 ├── src/
 │   ├── main/                    # Electron 主进程
 │   │   ├── main.js             # 应用入口、窗口管理、IPC 通信
-│   │   └── preload.js          # 安全的 IPC 桥接层
+│   │   ├── preload.js          # 安全的 IPC 桥接层
+│   │   ├── googleAuth.js       # Google OAuth 认证
+│   │   └── driveSync.js        # Google Drive 同步
 │   └── renderer/                # 渲染进程（前端）
 │       ├── index.html          # 应用界面
 │       ├── css/
-│       │   └── styles.css      # 样式（含主题系统）
+│       │   ├── styles.css      # 主样式（含主题系统）
+│       │   └── settings-accordion.css  # 设置页面折叠样式
 │       └── js/
 │           └── app.js          # 前端业务逻辑
-├── package.json                 # 项目配置
-├── CHANGELOG.md                 # 版本更新日志
-└── README.md                    # 项目文档
+├── package.json                 # 项目配置和依赖
+├── GOOGLE_SYNC_GUIDE.md         # Google 同步功能指南
+└── README.md                    # 项目文档（本文件）
 ```
 
 ## 💾 数据存储
@@ -285,12 +283,34 @@ record/
 - Ollama（本地免费，需安装 [Ollama](https://ollama.ai/)）
 - 其他兼容 OpenAI API 的服务
 
+### Google Drive 云同步配置
+1. 点击侧边栏 **"设置"** → 展开 **"Google Drive 云同步"**
+2. **配置 OAuth 凭据**（首次使用）：
+   - 前往 [Google Cloud Console](https://console.cloud.google.com/)
+   - 创建项目并启用 Google Drive API
+   - 创建 OAuth 2.0 客户端凭据
+   - 将 Client ID 和 Client Secret 填入应用设置
+   - 点击"保存配置"
+   - 详细步骤见 `GOOGLE_SYNC_GUIDE.md`
+3. **登录授权**：
+   - 点击"登录"按钮
+   - 在弹出窗口中授权应用访问您的 Google Drive
+   - 授权完成后会显示您的账号信息
+4. **使用同步**：
+   - 登录后，保存/删除记录会自动同步
+   - 可在设置中手动触发同步
+   - 可启用"启动时自动同步"
+
+> **提示**：每个用户需要创建自己的 Google OAuth 应用，确保数据隔离和安全。
+
 ### 个性化设置
-1. 在侧边栏底部切换深色/浅色模式和主题颜色
-2. 在 **"设置"** 页面：
-   - 配置 AI 参数
-   - 更改数据存储位置
-   - 查看应用版本
+1. 点击侧边栏 **"设置"**
+2. 点击各个设置区域标题展开：
+   - **外观设置**：切换深色/浅色模式和主题颜色
+   - **Google Drive 云同步**：配置 OAuth 和同步选项
+   - **AI 助手配置**：配置 AI API 参数
+   - **数据存储**：更改数据存储位置
+   - **关于**：查看应用版本
 
 ## 🔧 代码重构（v3.0）
 
@@ -324,102 +344,40 @@ v3.0 版本在添加饮食功能的同时，进行了全面的代码重构，大
 
 详细的重构过程和代码对比，请查看 Git 提交历史。
 
-## 🔄 版本更新检查清单
-
-在更新版本号时，**务必**检查并修改以下所有位置（避免遗漏）：
-
-### ✅ 必须修改的文件
-
-| 文件 | 位置 | 说明 |
-|------|------|------|
-| **package.json** | `"version": "x.x.x"` | NPM 包版本号 |
-| **CHANGELOG.md** | 文件开头添加新版本日志 | 详细记录本次更新内容 |
-| **src/renderer/index.html** | 设置页面 → 关于部分 | 搜索 `<p>版本：` 修改版本号 |
-
-### 📋 检查步骤
-
-1. **确定版本号规则**（遵循语义化版本）：
-   - 主版本号（Major）：重大功能更新或不兼容的改动
-   - 次版本号（Minor）：新增功能，向后兼容
-   - 修订号（Patch）：Bug 修复和小优化
-
-2. **修改文件**：
-   ```bash
-   # 1. 修改 package.json
-   "version": "3.0.0"  # 新版本号
-   
-   # 2. 修改 CHANGELOG.md
-   ## v3.0.0 - 标题
-   ### 🎯 主要更新
-   ...
-   
-   # 3. 修改 src/renderer/index.html（约 704 行）
-   <p>版本：3.0.0</p>
-   ```
-
-3. **验证修改**：
-   ```bash
-   # 搜索旧版本号，确保没有遗漏
-   git grep "2.1.1"  # 搜索旧版本号
-   git grep "版本"   # 检查中文版本号
-   ```
-
-4. **测试应用**：
-   ```bash
-   npm start
-   # 检查"设置 → 关于"页面显示的版本号是否正确
-   ```
-
-5. **提交代码**：
-   ```bash
-   git add .
-   git commit -m "v3.0.0 - 更新说明"
-   git tag v3.0.0
-   ```
-
-### ⚠️ 常见遗漏
-
-- ❌ **最容易遗漏**：`src/renderer/index.html` 中的版本号（每次都检查！）
-- ❌ 忘记更新 CHANGELOG.md
-- ❌ package.json 和 HTML 中的版本号不一致
-
-### 💡 提示
-
-建议使用全局搜索查找旧版本号，确保所有位置都已更新：
-```bash
-# 在项目根目录执行
-git grep "<旧版本号>"  # 例如：git grep "2.1.1"
-```
-
 ## 🔒 安全与隐私
 
-- ✅ 数据完全本地存储，不上传服务器
-- ✅ 无需注册账号，无需联网使用（除非启用云同步）
-- ✅ Context Isolation 确保渲染进程安全
+- ✅ 数据完全本地存储，不上传任何第三方服务器
+- ✅ 无需注册账号，完全离线使用（除非启用云同步）
+- ✅ Context Isolation 确保渲染进程安全隔离
 - ✅ 开源代码，可自行审计
 - ✅ AI 配置和 OAuth 凭据加密保存在本地
-- ✅ Google Drive 同步使用加密连接，数据仅存储在用户自己的云盘
-- ✅ 敏感凭据通过环境变量管理，不提交到代码仓库
+- ✅ Google Drive 同步使用加密连接（HTTPS）
+- ✅ **用户凭据隔离**：每个用户使用自己的 OAuth 应用，开发者无法访问您的数据
 
 **Google 同步隐私说明**：
-- 数据存储在 Google Drive 的 `appDataFolder`（应用专属文件夹）
-- 只有本应用可以访问，对用户不可见
-- 每个用户的数据完全隔离
-- 可随时在 Google 账号设置中撤销应用授权
+- 数据仅存储在**您自己的** Google Drive 中
+- 存储位置：Google Drive 的 `appDataFolder`（应用专属隐藏文件夹）
+- 只有本应用可以访问，您在 Google Drive 界面看不到这些文件
+- 每个用户的数据完全隔离，互不干扰
+- 可随时在 [Google 账号设置](https://myaccount.google.com/permissions) 中撤销应用授权
+- 开发者无法访问您的数据（因为使用的是您自己的 OAuth 凭据）
 
-## 📝 更新日志
+## 📝 最近更新
 
-详细的版本更新记录请查看 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：**v3.3.3** - 自动同步与折叠式设置
 
-当前版本：**v3.3.0** - Google Drive 智能云同步
+### 最新功能（v3.3.3）
+- ✨ **自动云同步**：保存/删除记录后自动同步到云端
+- 💬 **同步提示**：右下角优雅的同步状态提示
+- 🎨 **折叠式设置界面**：简洁美观，点击展开所需设置
+- 🔐 **应用内 OAuth 配置**：在设置页面直接配置，无需修改代码
 
-### v3.3.0 新增功能
-- ✅ Google OAuth 2.0 认证
-- ✅ Google Drive 智能增量同步
-- ✅ 多设备数据自动合并
-- ✅ 冲突自动解决
-- ✅ 启动时自动同步
-- ✅ 环境变量安全配置
+### 主要功能（v3.3 系列）
+- ☁️ Google Drive 智能云同步
+- 🌐 网络代理支持（方便中国大陆用户）
+- 🤖 AI 运动助手
+- 🍽️ 饮食记录管理
+- 📊 数据可视化统计
 
 **详细文档**：
 - [Google 同步功能使用指南](GOOGLE_SYNC_GUIDE.md) - 完整功能说明和使用教程

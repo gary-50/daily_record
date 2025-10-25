@@ -1222,6 +1222,9 @@ async function loadSettings() {
             DOM.currentDataPath.textContent = directory;
             DOM.currentDataPath.title = `锻炼记录：${config.exerciseFile}\n饮食记录：${config.dietFile}`;
         }
+        
+        // 加载 Google 配置
+        await loadGoogleConfig();
     } catch (error) {
         console.error('加载设置错误:', error);
     }
@@ -2281,8 +2284,56 @@ async function handleGoogleLogout() {
     }
 }
 
-function saveGoogleConfig(event) {
+// 加载 Google 配置
+async function loadGoogleConfig() {
+    try {
+        const result = await window.electronAPI.getGoogleConfig();
+        if (result.success && result.config) {
+            const clientId = document.getElementById('googleClientId');
+            const clientSecret = document.getElementById('googleClientSecret');
+            
+            if (clientId) {
+                clientId.value = result.config.clientId || '';
+            }
+            if (clientSecret) {
+                clientSecret.value = result.config.clientSecret || '';
+            }
+        }
+    } catch (error) {
+        console.error('加载 Google 配置失败:', error);
+    }
+}
+
+// 保存 Google 配置
+async function saveGoogleConfig(event) {
     if (event) event.preventDefault();
+    
+    const clientId = document.getElementById('googleClientId');
+    const clientSecret = document.getElementById('googleClientSecret');
+    
+    const config = {
+        clientId: clientId.value.trim(),
+        clientSecret: clientSecret.value.trim(),
+        enabled: false
+    };
+    
+    if (!config.clientId || !config.clientSecret) {
+        showToast('请填写完整的 Client ID 和 Client Secret', 'error');
+        return;
+    }
+    
+    try {
+        const result = await window.electronAPI.saveGoogleConfig(config);
+        
+        if (result.success) {
+            showToast('Google 配置已保存！现在可以登录了', 'success');
+        } else {
+            showToast(`保存失败：${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('保存 Google 配置失败:', error);
+        showToast('保存失败，请重试', 'error');
+    }
 }
 
 async function handleManualSync() {
@@ -2386,6 +2437,22 @@ async function toggleAutoSync(event) {
 }
 
 function bindGoogleSyncEvents() {
+    // Google 配置表单
+    const googleConfigForm = document.getElementById('googleConfigForm');
+    if (googleConfigForm) {
+        googleConfigForm.addEventListener('submit', saveGoogleConfig);
+    }
+
+    // 配置指南链接
+    const googleConfigGuideLink = document.getElementById('googleConfigGuideLink');
+    if (googleConfigGuideLink) {
+        googleConfigGuideLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.electronAPI.openExternal && window.electronAPI.openExternal('GOOGLE_SYNC_GUIDE.md');
+            showToast('请查看项目目录中的 GOOGLE_SYNC_GUIDE.md 文件', 'info');
+        });
+    }
+
     const googleLoginBtn = document.getElementById('googleLoginBtn');
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', handleGoogleLogin);
@@ -2573,3 +2640,49 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProxyConfig();
     bindProxyEvents();
 });
+
+// ==================== 设置页面折叠功能 ====================
+
+function initSettingsAccordion() {
+    const headers = document.querySelectorAll('.settings-section-header');
+    
+    headers.forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            const isActive = header.classList.contains('active');
+            
+            // 关闭所有其他区域
+            document.querySelectorAll('.settings-section-header').forEach(h => {
+                if (h !== header) {
+                    h.classList.remove('active');
+                    h.nextElementSibling.classList.remove('active');
+                }
+            });
+            
+            // 切换当前区域
+            if (isActive) {
+                header.classList.remove('active');
+                content.classList.remove('active');
+            } else {
+                header.classList.add('active');
+                content.classList.add('active');
+            }
+        });
+    });
+    
+    // 初始化时展开第一个区域
+    const firstHeader = document.querySelector('.settings-section-header');
+    if (firstHeader) {
+        firstHeader.classList.add('active');
+        firstHeader.nextElementSibling.classList.add('active');
+    }
+}
+
+// 在页面切换到设置页面时初始化折叠功能
+const originalSwitchPage = switchPage;
+switchPage = function(pageName) {
+    originalSwitchPage.call(this, pageName);
+    if (pageName === 'settings') {
+        setTimeout(initSettingsAccordion, 100);
+    }
+};

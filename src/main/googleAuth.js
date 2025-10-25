@@ -10,12 +10,12 @@ class GoogleAuth {
     }
 
     initialize(clientId, clientSecret, redirectUri = 'http://localhost') {
-        // 从环境变量或参数获取凭据
+        // 从参数或环境变量获取凭据（打包后的应用通过参数传入）
         const finalClientId = clientId || process.env.GOOGLE_CLIENT_ID;
         const finalClientSecret = clientSecret || process.env.GOOGLE_CLIENT_SECRET;
 
         if (!finalClientId || !finalClientSecret) {
-            throw new Error('Google OAuth 凭据未配置。请在 .env 文件中设置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET');
+            throw new Error('Google OAuth 凭据未配置。请在应用设置中配置您的 Client ID 和 Client Secret');
         }
 
         this.oauth2Client = new google.auth.OAuth2(

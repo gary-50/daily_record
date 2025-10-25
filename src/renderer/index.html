@@ -8,6 +8,7 @@
     <!-- 本地CSS样式 -->
     <link rel="stylesheet" href="../../node_modules/chart.js/dist/chart.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/settings-accordion.css">
 
     <!-- Chart.js图表库 -->
     <script src="../../node_modules/chart.js/dist/chart.umd.js"></script>
@@ -614,7 +615,23 @@
             </div>
 
             <!-- 外观设置 -->
-            <div class="content-card">
+            <div class="settings-section">
+                <button class="settings-section-header" data-section="appearance">
+                    <div class="settings-section-header-content">
+                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004 4h4a4 4 0 004-4v-12a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 01-4 4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div>
+                            <h3>外观设置</h3>
+                            <p>主题模式和颜色配置</p>
+                        </div>
+                    </div>
+                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div class="settings-section-content" id="appearanceSection">
+                    <div class="content-card">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -662,10 +679,28 @@
                         </div>
                     </div>
                 </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 云同步设置 -->
-            <div class="content-card" style="margin-top: 1.5rem;">
+            <div class="settings-section">
+                <button class="settings-section-header" data-section="google-sync">
+                    <div class="settings-section-header-content">
+                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div>
+                            <h3>Google Drive 云同步</h3>
+                            <p>配置 OAuth 凭据和同步设置</p>
+                        </div>
+                    </div>
+                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div class="settings-section-content" id="googleSyncSection">
+                    <div class="content-card">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -674,7 +709,28 @@
                         Google Drive 云同步
                     </h3>
                     
-                    <div class="settings-item google-auth-status" id="googleAuthStatus">
+                    <form id="googleConfigForm" style="margin-bottom: 1.5rem;">
+                        <div class="form-group">
+                            <label for="googleClientId">Google Client ID</label>
+                            <input type="text" id="googleClientId" placeholder="xxx.apps.googleusercontent.com">
+                            <small style="color: var(--text-muted); font-size: 12px;">从 Google Cloud Console 获取</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="googleClientSecret">Google Client Secret</label>
+                            <input type="password" id="googleClientSecret" placeholder="GOCSPX-...">
+                            <small style="color: var(--text-muted); font-size: 12px;">密钥将加密保存在本地</small>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M5 13l4 4L19 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            保存配置
+                        </button>
+                        <a href="#" id="googleConfigGuideLink" style="margin-left: 1rem; color: var(--primary-color); text-decoration: none; font-size: 14px;">📖 查看配置指南</a>
+                    </form>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                        <div class="settings-item google-auth-status" id="googleAuthStatus">
                         <div class="settings-description">
                             <p class="settings-label">账号状态</p>
                             <p class="settings-value" id="googleUserInfo">未登录</p>
@@ -693,30 +749,31 @@
                         </button>
                     </div>
 
-                    <div class="google-sync-actions" id="googleSyncActions" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-                        <div class="sync-status-info" id="syncStatusInfo">
-                            <p class="settings-label">同步状态</p>
-                            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 0.25rem;" id="lastSyncTime">从未同步</p>
-                        </div>
-                        <div class="sync-buttons" style="display: flex; gap: 0.75rem; margin-top: 1rem;">
-                            <button class="btn-primary" id="manualSyncBtn">
-                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                立即同步
-                            </button>
-                            <button class="btn-secondary" id="syncStatusBtn">
-                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                查看状态
-                            </button>
-                        </div>
-                        <div style="margin-top: 1rem;">
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                <input type="checkbox" id="autoSyncCheckbox" style="width: auto;">
-                                <span>启动时自动同步</span>
-                            </label>
+                        <div class="google-sync-actions" id="googleSyncActions" style="display:none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+                            <div class="sync-status-info" id="syncStatusInfo">
+                                <p class="settings-label">同步状态</p>
+                                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 0.25rem;" id="lastSyncTime">从未同步</p>
+                            </div>
+                            <div class="sync-buttons" style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+                                <button class="btn-primary" id="manualSyncBtn">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    立即同步
+                                </button>
+                                <button class="btn-secondary" id="syncStatusBtn">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    查看状态
+                                </button>
+                            </div>
+                            <div style="margin-top: 1rem;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="autoSyncCheckbox" style="width: auto;">
+                                    <span>启动时自动同步</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -748,10 +805,28 @@
                         </button>
                     </form>
                 </div>
+                    </div>
+                </div>
             </div>
 
             <!-- AI 助手配置 -->
-            <div class="content-card" style="margin-top: 1.5rem;">
+            <div class="settings-section">
+                <button class="settings-section-header" data-section="ai-config">
+                    <div class="settings-section-header-content">
+                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div>
+                            <h3>AI 助手配置</h3>
+                            <p>配置 AI API 接口和密钥</p>
+                        </div>
+                    </div>
+                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div class="settings-section-content" id="aiConfigSection">
+                    <div class="content-card">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -783,10 +858,28 @@
                         </button>
                     </form>
                 </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 数据管理 -->
-            <div class="content-card" style="margin-top: 1.5rem;">
+            <div class="settings-section">
+                <button class="settings-section-header" data-section="data-storage">
+                    <div class="settings-section-header-content">
+                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div>
+                            <h3>数据存储</h3>
+                            <p>管理数据文件存储位置</p>
+                        </div>
+                    </div>
+                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div class="settings-section-content" id="dataStorageSection">
+                    <div class="content-card">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -807,10 +900,28 @@
                         </button>
                     </div>
                 </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 关于 -->
-            <div class="content-card" style="margin-top: 1.5rem;">
+            <div class="settings-section">
+                <button class="settings-section-header" data-section="about">
+                    <div class="settings-section-header-content">
+                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div>
+                            <h3>关于</h3>
+                            <p>应用版本和信息</p>
+                        </div>
+                    </div>
+                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div class="settings-section-content" id="aboutSection">
+                    <div class="content-card">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -820,8 +931,10 @@
                     </h3>
                     <div class="settings-about">
                         <h4>日常记录系统</h4>
-                        <p style="color: var(--text-muted); margin: 0.5rem 0;">版本 3.3.3</p>
+                        <p style="color: var(--text-muted); margin: 0.5rem 0;">v3.3.3</p>
                         <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">基于 Electron 开发的桌面应用，用于记录和管理日常锻炼与饮食数据。</p>
+                    </div>
+                </div>
                     </div>
                 </div>
             </div>
