@@ -137,25 +137,45 @@ app.whenReady().then(async () => {
     if (config.googleConfig && config.googleConfig.enabled) {
         initializeGoogleAuth(config.googleConfig);
         
-        // 启动时自动同步
+        // 启动时自动同步（后台异步执行，不阻塞窗口创建）
         if (driveSync && config.googleConfig.autoSyncOnStart !== false) {
-            try {
-                await googleAuth.ensureValidToken();
-                const exerciseData = readJSONFile(DATA_FILE, []);
-                const dietData = readJSONFile(DIET_DATA_FILE, []);
-                
-                await driveSync.performFullSync(
-                    exerciseData,
-                    dietData,
-                    readJSONFile,
-                    writeJSONFile,
-                    DATA_FILE,
-                    DIET_DATA_FILE
-                );
-                console.log('启动时自动同步完成');
-            } catch (error) {
-                console.error('启动时自动同步失败:', error);
-            }
+            (async () => {
+                try {
+                    await googleAuth.ensureValidToken();
+                    const exerciseData = readJSONFile(DATA_FILE, []);
+                    const dietData = readJSONFile(DIET_DATA_FILE, []);
+                    
+                    await driveSync.performFullSync(
+                        exerciseData,
+                        dietData,
+                        readJSONFile,
+                        writeJSONFile,
+                        DATA_FILE,
+                        DIET_DATA_FILE
+                    );
+                    console.log('启动时自动同步完成');
+                    
+                    // 发送同步通知到前端
+                    const allWindows = BrowserWindow.getAllWindows();
+                    allWindows.forEach(window => {
+                        window.webContents.send('sync-notification', {
+                            success: true,
+                            message: '启动同步已完成'
+                        });
+                    });
+                } catch (error) {
+                    console.error('启动时自动同步失败:', error);
+                    
+                    // 发送失败通知到前端
+                    const allWindows = BrowserWindow.getAllWindows();
+                    allWindows.forEach(window => {
+                        window.webContents.send('sync-notification', {
+                            success: false,
+                            message: '启动同步失败: ' + error.message
+                        });
+                    });
+                }
+            })();
         }
     }
     
