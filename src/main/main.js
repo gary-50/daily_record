@@ -299,6 +299,29 @@ ipcMain.handle('delete-record', async (event, id) => {
     return handleDeleteRecord(DATA_FILE, id, '删除数据失败', 'exercise');
 });
 
+ipcMain.handle('update-record', async (event, updatedRecord) => {
+    try {
+        const records = readJSONFile(DATA_FILE, []);
+        const index = records.findIndex(record => record.id === updatedRecord.id);
+        
+        if (index === -1) {
+            throw new Error('记录不存在');
+        }
+        
+        records[index] = updatedRecord;
+        records.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        if (writeJSONFile(DATA_FILE, records)) {
+            autoSyncIfEnabled('exercise');
+            return { success: true, record: updatedRecord };
+        }
+        throw new Error('写入文件失败');
+    } catch (error) {
+        console.error('更新数据失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
 // IPC 处理器 - 获取数据文件路径
 ipcMain.handle('get-data-path', async () => {
     return DATA_FILE;
@@ -428,6 +451,30 @@ ipcMain.handle('save-diet-record', async (event, record) => {
 // IPC 处理器 - 删除饮食记录
 ipcMain.handle('delete-diet-record', async (event, id) => {
     return handleDeleteRecord(DIET_DATA_FILE, id, '删除饮食数据失败', 'diet');
+});
+
+// IPC 处理器 - 更新饮食记录
+ipcMain.handle('update-diet-record', async (event, updatedRecord) => {
+    try {
+        const records = readJSONFile(DIET_DATA_FILE, []);
+        const index = records.findIndex(record => record.id === updatedRecord.id);
+        
+        if (index === -1) {
+            throw new Error('记录不存在');
+        }
+        
+        records[index] = updatedRecord;
+        records.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        if (writeJSONFile(DIET_DATA_FILE, records)) {
+            autoSyncIfEnabled('diet');
+            return { success: true, record: updatedRecord };
+        }
+        throw new Error('写入文件失败');
+    } catch (error) {
+        console.error('更新饮食数据失败:', error);
+        return { success: false, error: error.message };
+    }
 });
 
 // ==================== Google 同步功能 ====================

@@ -665,6 +665,7 @@ function displayRecords() {
                 <div class="record-detail-content">
                     ${detailContent}
                     <div class="detail-actions">
+                        <button class="edit-btn" onclick="editRecord(${record.id})">编辑</button>
                         <button class="delete-btn" onclick="deleteRecord(${record.id})">删除记录</button>
                     </div>
                 </div>
@@ -749,6 +750,226 @@ async function deleteRecord(id) {
     }
 }
 
+/**
+ * 编辑记录
+ */
+function editRecord(id) {
+    const record = exerciseData.find(r => r.id === id);
+    if (!record) {
+        showToast('记录不存在', 'error');
+        return;
+    }
+    
+    showEditModal(record);
+}
+
+/**
+ * 显示编辑弹窗
+ */
+function showEditModal(record) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    
+    const modal = document.createElement('div');
+    modal.className = 'edit-modal';
+    modal.onclick = (e) => e.stopPropagation();
+    
+    const runType = record.runType || 'longRun';
+    const isSpeedEndurance = runType === 'speedEndurance';
+    
+    modal.innerHTML = `
+        <div class="modal-header">
+            <h3>编辑锻炼记录</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="editExerciseForm">
+                <input type="hidden" id="editRecordId" value="${record.id}">
+                
+                <div class="form-section">
+                    <h4 class="section-title">基本信息</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editDate">日期</label>
+                            <input type="date" id="editDate" value="${record.date}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editRunTime">跑步时间</label>
+                            <input type="time" id="editRunTime" value="${record.runTime || ''}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">跑步类型</h4>
+                    <div class="form-group">
+                        <div style="display: flex; gap: 1rem;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="radio" name="editRunType" value="longRun" ${!isSpeedEndurance ? 'checked' : ''} style="margin-right: 0.5rem;">
+                                <span>长跑</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="radio" name="editRunType" value="speedEndurance" ${isSpeedEndurance ? 'checked' : ''} style="margin-right: 0.5rem;">
+                                <span>跑速耐</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section" id="editLongRunSection" style="${isSpeedEndurance ? 'display: none;' : ''}">
+                    <h4 class="section-title">跑步数据</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editRunDuration">时长</label>
+                            <input type="time" id="editRunDuration" step="1" value="${secondsToTime(record.runDurationSeconds || 0)}">
+                        </div>
+                        <div class="form-group">
+                            <label for="editRunDistance">距离（公里）</label>
+                            <input type="number" id="editRunDistance" min="0" step="0.01" value="${record.runDistance || 0}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section" id="editSpeedEnduranceSection" style="${!isSpeedEndurance ? 'display: none;' : ''}">
+                    <h4 class="section-title">跑速耐数据</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editDistancePerSet">每组距离（米）</label>
+                            <input type="number" id="editDistancePerSet" min="0" step="1" value="${record.distancePerSet || 0}">
+                        </div>
+                        <div class="form-group">
+                            <label for="editSets">组数</label>
+                            <input type="number" id="editSets" min="0" step="1" value="${record.sets || 0}">
+                        </div>
+                        <div class="form-group">
+                            <label for="editPacePerSet">配速（分'秒"）</label>
+                            <input type="text" id="editPacePerSet" value="${record.pacePerSet || ''}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSpeedEnduranceNotes">备注</label>
+                        <textarea id="editSpeedEnduranceNotes" rows="3">${record.speedEnduranceNotes || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">力量训练</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editPushups">俯卧撑（个）</label>
+                            <input type="number" id="editPushups" min="0" step="1" value="${record.pushups || 0}">
+                        </div>
+                        <div class="form-group">
+                            <label for="editSquats">深蹲（个）</label>
+                            <input type="number" id="editSquats" min="0" step="1" value="${record.squats || 0}">
+                        </div>
+                        <div class="form-group">
+                            <label for="editMountainClimbers">登山跑（个）</label>
+                            <input type="number" id="editMountainClimbers" min="0" step="1" value="${record.mountainClimbers || 0}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">体感记录</h4>
+                    <div class="form-group">
+                        <textarea id="editFeeling" rows="4">${record.feeling || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">取消</button>
+                    <button type="submit" class="btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // 跑步类型切换事件
+    const editRunTypeRadios = modal.querySelectorAll('input[name="editRunType"]');
+    editRunTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const longRunSection = modal.querySelector('#editLongRunSection');
+            const speedEnduranceSection = modal.querySelector('#editSpeedEnduranceSection');
+            
+            if (this.value === 'longRun') {
+                longRunSection.style.display = 'block';
+                speedEnduranceSection.style.display = 'none';
+            } else {
+                longRunSection.style.display = 'none';
+                speedEnduranceSection.style.display = 'block';
+            }
+        });
+    });
+    
+    // 表单提交事件
+    const form = modal.querySelector('#editExerciseForm');
+    form.addEventListener('submit', handleEditFormSubmit);
+    
+    overlay.onclick = () => overlay.remove();
+}
+
+/**
+ * 处理编辑表单提交
+ */
+async function handleEditFormSubmit(e) {
+    e.preventDefault();
+    
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    const originalText = submitButton.innerHTML;
+    submitButton.innerHTML = '<span>保存中...</span>';
+    
+    try {
+        const recordId = parseInt(document.getElementById('editRecordId').value);
+        const runType = document.querySelector('input[name="editRunType"]:checked').value;
+        
+        const updatedRecord = {
+            id: recordId,
+            date: document.getElementById('editDate').value,
+            runTime: document.getElementById('editRunTime').value || '',
+            pushups: parseInt(document.getElementById('editPushups').value) || 0,
+            squats: parseInt(document.getElementById('editSquats').value) || 0,
+            mountainClimbers: parseInt(document.getElementById('editMountainClimbers').value) || 0,
+            feeling: document.getElementById('editFeeling').value,
+            runType: runType
+        };
+        
+        if (runType === 'longRun') {
+            updatedRecord.runDurationSeconds = timeToSeconds(document.getElementById('editRunDuration').value);
+            updatedRecord.runDistance = parseFloat(document.getElementById('editRunDistance').value) || 0;
+        } else if (runType === 'speedEndurance') {
+            updatedRecord.distancePerSet = parseInt(document.getElementById('editDistancePerSet').value) || 0;
+            updatedRecord.sets = parseInt(document.getElementById('editSets').value) || 0;
+            updatedRecord.pacePerSet = document.getElementById('editPacePerSet').value || '';
+            updatedRecord.speedEnduranceNotes = document.getElementById('editSpeedEnduranceNotes').value || '';
+        }
+        
+        const result = await window.electronAPI.updateRecord(updatedRecord);
+        
+        if (result.success) {
+            await loadData();
+            document.querySelector('.modal-overlay').remove();
+            showToast('修改成功！', 'success');
+        } else {
+            throw new Error(result.error || '保存失败');
+        }
+    } catch (error) {
+        console.error('更新数据错误:', error);
+        showToast('保存失败：' + error.message, 'error');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    }
+}
+
 function displayDietRecords() {
     const container = document.getElementById('dietCardsContainer');
     if (!container) return;
@@ -821,6 +1042,12 @@ function displayDietRecords() {
                     <svg class="diet-card-toggle" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
+                    <button class="diet-card-edit" onclick="event.stopPropagation(); editDietRecord(${record.id})" title="编辑这天的记录">
+                        <svg viewBox="0 0 24 24" fill="white">
+                            <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        <span>编辑</span>
+                    </button>
                     <button class="diet-card-delete" onclick="event.stopPropagation(); deleteDietRecord(${record.id})" title="删除这天的记录">
                         <svg viewBox="0 0 24 24" fill="white">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
@@ -911,6 +1138,191 @@ async function deleteDietRecord(id) {
             console.error('删除饮食数据错误:', error);
             showToast('删除失败：' + error.message, 'error');
         }
+    }
+}
+
+/**
+ * 编辑饮食记录
+ */
+function editDietRecord(id) {
+    const record = dietData.find(r => r.id === id);
+    if (!record) {
+        showToast('记录不存在', 'error');
+        return;
+    }
+    
+    showEditDietModal(record);
+}
+
+/**
+ * 显示编辑饮食记录弹窗
+ */
+function showEditDietModal(record) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    
+    const modal = document.createElement('div');
+    modal.className = 'edit-modal';
+    modal.onclick = (e) => e.stopPropagation();
+    
+    modal.innerHTML = `
+        <div class="modal-header">
+            <h3>编辑饮食记录</h3>
+            <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="editDietForm">
+                <input type="hidden" id="editDietRecordId" value="${record.id}">
+                
+                <div class="form-section">
+                    <h4 class="section-title">基本信息</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editDietDate">日期</label>
+                            <input type="date" id="editDietDate" value="${record.date}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editWaterCups">饮水杯数</label>
+                            <input type="number" id="editWaterCups" min="0" step="1" value="${record.waterCups || 0}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">零食与饮料</h4>
+                    <div class="form-group">
+                        <label for="editSnacks">零食饮料备注</label>
+                        <textarea id="editSnacks" rows="3">${record.snacks || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">早餐</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editBreakfastTime">时间</label>
+                            <input type="time" id="editBreakfastTime" value="${record.breakfast?.time || ''}">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="editBreakfastFoods">食物</label>
+                            <input type="text" id="editBreakfastFoods" value="${record.breakfast?.foods || ''}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editBreakfastNotes">备注</label>
+                        <textarea id="editBreakfastNotes" rows="2">${record.breakfast?.notes || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">午餐</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editLunchTime">时间</label>
+                            <input type="time" id="editLunchTime" value="${record.lunch?.time || ''}">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="editLunchFoods">食物</label>
+                            <input type="text" id="editLunchFoods" value="${record.lunch?.foods || ''}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLunchNotes">备注</label>
+                        <textarea id="editLunchNotes" rows="2">${record.lunch?.notes || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h4 class="section-title">晚餐</h4>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editDinnerTime">时间</label>
+                            <input type="time" id="editDinnerTime" value="${record.dinner?.time || ''}">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="editDinnerFoods">食物</label>
+                            <input type="text" id="editDinnerFoods" value="${record.dinner?.foods || ''}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDinnerNotes">备注</label>
+                        <textarea id="editDinnerNotes" rows="2">${record.dinner?.notes || ''}</textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">取消</button>
+                    <button type="submit" class="btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // 表单提交事件
+    const form = modal.querySelector('#editDietForm');
+    form.addEventListener('submit', handleEditDietFormSubmit);
+    
+    overlay.onclick = () => overlay.remove();
+}
+
+/**
+ * 处理编辑饮食表单提交
+ */
+async function handleEditDietFormSubmit(e) {
+    e.preventDefault();
+    
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    const originalText = submitButton.innerHTML;
+    submitButton.innerHTML = '<span>保存中...</span>';
+    
+    try {
+        const recordId = parseInt(document.getElementById('editDietRecordId').value);
+        
+        const updatedRecord = {
+            id: recordId,
+            date: document.getElementById('editDietDate').value,
+            waterCups: parseInt(document.getElementById('editWaterCups').value) || 0,
+            snacks: document.getElementById('editSnacks').value || '',
+            breakfast: {
+                time: document.getElementById('editBreakfastTime').value || '',
+                foods: document.getElementById('editBreakfastFoods').value || '',
+                notes: document.getElementById('editBreakfastNotes').value || ''
+            },
+            lunch: {
+                time: document.getElementById('editLunchTime').value || '',
+                foods: document.getElementById('editLunchFoods').value || '',
+                notes: document.getElementById('editLunchNotes').value || ''
+            },
+            dinner: {
+                time: document.getElementById('editDinnerTime').value || '',
+                foods: document.getElementById('editDinnerFoods').value || '',
+                notes: document.getElementById('editDinnerNotes').value || ''
+            }
+        };
+        
+        const result = await window.electronAPI.updateDietRecord(updatedRecord);
+        
+        if (result.success) {
+            await loadDietData();
+            document.querySelector('.modal-overlay').remove();
+            showToast('修改成功！', 'success');
+        } else {
+            throw new Error(result.error || '保存失败');
+        }
+    } catch (error) {
+        console.error('更新饮食数据错误:', error);
+        showToast('保存失败：' + error.message, 'error');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
     }
 }
 

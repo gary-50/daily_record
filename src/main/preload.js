@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRecords: invoke('get-records'),
     saveRecord: invokeWith('save-record'),
     deleteRecord: invokeWith('delete-record'),
+    updateRecord: invokeWith('update-record'),
     getDataPath: invoke('get-data-path'),
     chooseDataPath: invoke('choose-data-path'),
     setDataPath: invokeWith('set-data-path'),
@@ -16,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDietRecords: invoke('get-diet-records'),
     saveDietRecord: invokeWith('save-diet-record'),
     deleteDietRecord: invokeWith('delete-diet-record'),
+    updateDietRecord: invokeWith('update-diet-record'),
     
     // Google 同步 API
     getGoogleConfig: invoke('get-google-config'),

@@ -2931,3 +2931,173 @@ button {
         width: 100%;
     }
 }
+
+/* 编辑弹窗样式 */
+.edit-modal {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    max-width: 800px;
+    width: 90%;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.edit-modal .modal-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.edit-modal .modal-body {
+    overflow-y: auto;
+    padding: 2rem;
+    flex: 1;
+}
+
+.edit-modal .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.edit-modal .modal-body::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.edit-modal .modal-body::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.edit-modal .modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+.edit-modal .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.edit-modal .form-section {
+    margin-bottom: 1.5rem;
+}
+
+.edit-modal .form-section:last-of-type {
+    margin-bottom: 0;
+}
+
+.edit-modal .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 编辑按钮样式 */
+.edit-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.edit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.edit-btn:active {
+    transform: translateY(0);
+}
+
+/* 饮食记录卡片编辑按钮 */
+.diet-card-edit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.diet-card-edit svg {
+    width: 16px;
+    height: 16px;
+}
+
+.diet-card-edit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.diet-card-edit:active {
+    transform: translateY(0);
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .edit-modal {
+    background: var(--bg-white);
+}
+
+[data-theme="dark"] .edit-modal .modal-header {
+    background: var(--bg-secondary);
+    border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .edit-modal .modal-actions {
+    border-top-color: var(--border-color);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .edit-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .edit-modal .modal-header {
+        padding: 1rem 1.5rem;
+    }
+    
+    .edit-modal .modal-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .edit-modal .modal-body {
+        padding: 1.5rem;
+    }
+}
