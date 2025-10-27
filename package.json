@@ -1,6 +1,6 @@
 {
   "name": "daily-record",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "日常记录系统 - 运动与饮食 - Electron版本",
   "main": "src/main/main.js",
   "scripts": {
