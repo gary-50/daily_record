@@ -136,9 +136,9 @@ record/
 
 ### 默认存储位置
 
-- **Windows**: `%APPDATA%\exercise-tracker-electron\`
-- **macOS**: `~/Library/Application Support/exercise-tracker-electron/`
-- **Linux**: `~/.config/exercise-tracker-electron/`
+- **Windows**: `%APPDATA%\daily-record\`
+- **macOS**: `~/Library/Application Support/daily-record/`
+- **Linux**: `~/.config/daily-record/`
 
 包含以下文件：
 - `exercise-data.json` - 运动记录

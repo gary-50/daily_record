@@ -1,5 +1,5 @@
 {
-  "name": "exercise-tracker-electron",
+  "name": "daily-record",
   "version": "3.4.0",
   "description": "日常记录系统 - 运动与饮食 - Electron版本",
   "main": "src/main/main.js",
@@ -14,9 +14,10 @@
     "dist:linux": "electron-builder --linux"
   },
   "keywords": [
-    "exercise",
-    "tracker",
+    "daily",
+    "record",
     "fitness",
+    "diet",
     "electron"
   ],
   "author": {
@@ -25,7 +26,7 @@
   },
   "license": "ISC",
   "build": {
-    "appId": "com.exercise.tracker",
+    "appId": "com.dailyrecord.app",
     "productName": "日常记录系统",
     "directories": {
       "output": "dist"

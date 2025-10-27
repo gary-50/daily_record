@@ -26,6 +26,7 @@ let currentTab = 'daily';
 let currentChartType = 'line';
 let currentPage = 'record';
 let heatmapTooltip = null;
+let heatmapRendered = false;
 
 const DOM = {};
 
@@ -102,11 +103,16 @@ function switchPage(pageName) {
     currentPage = pageName;
 
     if (pageName === 'stats') {
-        setTimeout(() => {
+        // 使用requestAnimationFrame优化渲染，避免卡顿
+        requestAnimationFrame(() => {
             updateEmptyStates();
-            renderHeatmap();
+            // 只有当热力图未渲染时才渲染，减少不必要的重复计算
+            if (!heatmapRendered) {
+                renderHeatmap();
+                heatmapRendered = true;
+            }
             updateCharts();
-        }, CONSTANTS.CHART_SCROLL_DELAY);
+        });
     } else if (pageName === 'history') {
         setTimeout(() => {
             updateEmptyStates();
@@ -236,6 +242,24 @@ function bindEventListeners() {
         });
     });
 
+    // Settings页面tab切换
+    document.querySelectorAll('[data-settings-tab]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabName = this.dataset.settingsTab;
+            setActiveClass('[data-settings-tab]', this);
+            
+            // 切换tab内容
+            document.querySelectorAll('.settings-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            const targetSection = document.getElementById(tabName + 'Section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
+        });
+    });
+
     // 跑步类型切换事件
     document.querySelectorAll('input[name="runType"]').forEach(radio => {
         radio.addEventListener('change', function() {
@@ -261,8 +285,11 @@ async function loadData() {
         hideSkeletonLoading();
         displayRecords();
         updateEmptyStates();
+        // 数据变化后，重置热力图渲染标志
+        heatmapRendered = false;
         if (currentPage === 'stats') {
             renderHeatmap();
+            heatmapRendered = true;
             updateCharts();
         }
     } catch (error) {
@@ -1820,7 +1847,13 @@ function renderHeatmap() {
 
     const exerciseMap = {};
     exerciseData.forEach(record => {
-        const score = (record.runDistance || 0) +
+        let distance = record.runDistance || 0;
+        // 支持速耐类型：计算总距离（米转公里）
+        if (record.runType === 'speedEndurance' && record.distancePerSet && record.sets) {
+            distance = (record.distancePerSet * record.sets) / 1000;
+        }
+        
+        const score = distance +
                      (record.pushups || 0) * 0.01 +
                      (record.squats || 0) * 0.01 +
                      (record.mountainClimbers || 0) * 0.01;
@@ -1878,7 +1911,15 @@ function showHeatmapTooltip(e) {
     let content = `<strong>${date}</strong><br>`;
     
     if (record) {
-        if (record.runDistance) content += `跑步: ${record.runDistance}km<br>`;
+        // 显示跑步数据
+        if (record.runType === 'speedEndurance' && record.distancePerSet && record.sets) {
+            const totalDist = (record.distancePerSet * record.sets) / 1000;
+            content += `速耐: ${record.sets}组×${record.distancePerSet}m (共${totalDist.toFixed(2)}km)<br>`;
+            if (record.pacePerSet) content += `配速: ${record.pacePerSet}<br>`;
+        } else if (record.runDistance) {
+            content += `跑步: ${record.runDistance}km<br>`;
+        }
+        
         if (record.pushups) content += `俯卧撑: ${record.pushups}个<br>`;
         if (record.squats) content += `深蹲: ${record.squats}个<br>`;
         if (record.mountainClimbers) content += `登山跑: ${record.mountainClimbers}个`;
@@ -3053,48 +3094,4 @@ document.addEventListener('DOMContentLoaded', () => {
     bindProxyEvents();
 });
 
-// ==================== 设置页面折叠功能 ====================
 
-function initSettingsAccordion() {
-    const headers = document.querySelectorAll('.settings-section-header');
-    
-    headers.forEach(header => {
-        header.addEventListener('click', () => {
-            const content = header.nextElementSibling;
-            const isActive = header.classList.contains('active');
-            
-            // 关闭所有其他区域
-            document.querySelectorAll('.settings-section-header').forEach(h => {
-                if (h !== header) {
-                    h.classList.remove('active');
-                    h.nextElementSibling.classList.remove('active');
-                }
-            });
-            
-            // 切换当前区域
-            if (isActive) {
-                header.classList.remove('active');
-                content.classList.remove('active');
-            } else {
-                header.classList.add('active');
-                content.classList.add('active');
-            }
-        });
-    });
-    
-    // 初始化时展开第一个区域
-    const firstHeader = document.querySelector('.settings-section-header');
-    if (firstHeader) {
-        firstHeader.classList.add('active');
-        firstHeader.nextElementSibling.classList.add('active');
-    }
-}
-
-// 在页面切换到设置页面时初始化折叠功能
-const originalSwitchPage = switchPage;
-switchPage = function(pageName) {
-    originalSwitchPage.call(this, pageName);
-    if (pageName === 'settings') {
-        setTimeout(initSettingsAccordion, 100);
-    }
-};

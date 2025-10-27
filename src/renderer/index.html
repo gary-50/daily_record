@@ -614,24 +614,42 @@
                 <p class="page-subtitle">个性化配置您的应用</p>
             </div>
 
-            <!-- 外观设置 -->
-            <div class="settings-section">
-                <button class="settings-section-header" data-section="appearance">
-                    <div class="settings-section-header-content">
-                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004 4h4a4 4 0 004-4v-12a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 01-4 4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div>
-                            <h3>外观设置</h3>
-                            <p>主题模式和颜色配置</p>
-                        </div>
-                    </div>
-                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Tab切换 -->
+            <div class="tab-container" style="margin-bottom: 1.5rem;">
+                <button class="tab-btn active" data-settings-tab="appearance">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004 4h4a4 4 0 004-4v-12a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 01-4 4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
+                    外观
                 </button>
-                <div class="settings-section-content" id="appearanceSection">
-                    <div class="content-card">
+                <button class="tab-btn" data-settings-tab="googleSync">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    云同步
+                </button>
+                <button class="tab-btn" data-settings-tab="aiConfig">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    AI助手
+                </button>
+                <button class="tab-btn" data-settings-tab="dataStorage">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    数据存储
+                </button>
+                <button class="tab-btn" data-settings-tab="about">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    关于
+                </button>
+            </div>
+
+            <!-- 外观设置 -->
+            <div class="content-card settings-tab-content" id="appearanceSection">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -679,28 +697,10 @@
                         </div>
                     </div>
                 </div>
-                    </div>
-                </div>
             </div>
 
             <!-- 云同步设置 -->
-            <div class="settings-section">
-                <button class="settings-section-header" data-section="google-sync">
-                    <div class="settings-section-header-content">
-                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div>
-                            <h3>Google Drive 云同步</h3>
-                            <p>配置 OAuth 凭据和同步设置</p>
-                        </div>
-                    </div>
-                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                <div class="settings-section-content" id="googleSyncSection">
-                    <div class="content-card">
+            <div class="content-card settings-tab-content" id="googleSyncSection" style="display: none;">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -805,28 +805,10 @@
                         </button>
                     </form>
                 </div>
-                    </div>
-                </div>
             </div>
 
             <!-- AI 助手配置 -->
-            <div class="settings-section">
-                <button class="settings-section-header" data-section="ai-config">
-                    <div class="settings-section-header-content">
-                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div>
-                            <h3>AI 助手配置</h3>
-                            <p>配置 AI API 接口和密钥</p>
-                        </div>
-                    </div>
-                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                <div class="settings-section-content" id="aiConfigSection">
-                    <div class="content-card">
+            <div class="content-card settings-tab-content" id="aiConfigSection" style="display: none;">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -858,28 +840,10 @@
                         </button>
                     </form>
                 </div>
-                    </div>
-                </div>
             </div>
 
             <!-- 数据管理 -->
-            <div class="settings-section">
-                <button class="settings-section-header" data-section="data-storage">
-                    <div class="settings-section-header-content">
-                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div>
-                            <h3>数据存储</h3>
-                            <p>管理数据文件存储位置</p>
-                        </div>
-                    </div>
-                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                <div class="settings-section-content" id="dataStorageSection">
-                    <div class="content-card">
+            <div class="content-card settings-tab-content" id="dataStorageSection" style="display: none;">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -900,28 +864,10 @@
                         </button>
                     </div>
                 </div>
-                    </div>
-                </div>
             </div>
 
             <!-- 关于 -->
-            <div class="settings-section">
-                <button class="settings-section-header" data-section="about">
-                    <div class="settings-section-header-content">
-                        <svg class="settings-section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div>
-                            <h3>关于</h3>
-                            <p>应用版本和信息</p>
-                        </div>
-                    </div>
-                    <svg class="settings-section-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M19 9l-7 7-7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-                <div class="settings-section-content" id="aboutSection">
-                    <div class="content-card">
+            <div class="content-card settings-tab-content" id="aboutSection" style="display: none;">
                 <div class="form-section">
                     <h3 class="section-title">
                         <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -931,10 +877,8 @@
                     </h3>
                     <div class="settings-about">
                         <h4>日常记录系统</h4>
-                        <p style="color: var(--text-muted); margin: 0.5rem 0;">v3.3.5</p>
+                        <p style="color: var(--text-muted); margin: 0.5rem 0;">v3.4.0</p>
                         <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">基于 Electron 开发的桌面应用，用于记录和管理日常锻炼与饮食数据。</p>
-                    </div>
-                </div>
                     </div>
                 </div>
             </div>
