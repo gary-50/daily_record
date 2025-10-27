@@ -1444,6 +1444,60 @@ button {
     margin-bottom: 10px;
 }
 
+/* 加载指示器样式 */
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spinner-rotate 0.8s linear infinite;
+}
+
+@keyframes spinner-rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    min-height: 200px;
+}
+
+.chart-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: var(--radius-md);
+}
+
+[data-theme="dark"] .chart-loading-overlay {
+    background: rgba(36, 37, 38, 0.9);
+}
+
+.chart-loading-overlay p {
+    margin-top: 12px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
 .skeleton-text.large {
     height: 24px;
 }
@@ -3099,5 +3153,119 @@ button {
     
     .edit-modal .modal-body {
         padding: 1.5rem;
+    }
+}
+
+/* ==================== 分页控件样式 ==================== */
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 24px;
+    padding: 20px;
+    background: var(--bg-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-white);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    padding: 0;
+}
+
+.pagination-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-primary);
+}
+
+.pagination-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--bg-secondary);
+}
+
+.pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.pagination-text strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.pagination-divider {
+    color: var(--border-color);
+    font-weight: 300;
+}
+
+/* 深色模式适配 */
+[data-theme="dark"] .pagination-controls {
+    background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .pagination-btn {
+    background: var(--bg-white);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .pagination-btn:disabled {
+    background: var(--bg-primary);
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+    .pagination-controls {
+        gap: 8px;
+        padding: 16px;
+    }
+    
+    .pagination-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .pagination-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .pagination-info {
+        flex-direction: column;
+        gap: 4px;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+    
+    .pagination-divider {
+        display: none;
     }
 }

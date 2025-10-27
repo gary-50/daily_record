@@ -188,17 +188,28 @@ class DriveSync {
             const cloudItem = cloudMap.get(id);
 
             if (localItem && cloudItem) {
-                // 两边都有，比较修改时间或版本
-                // 这里简化处理：选择最新的
-                const localTime = new Date(localItem.date).getTime();
-                const cloudTime = new Date(cloudItem.date).getTime();
-                mergedData.push(localTime >= cloudTime ? localItem : cloudItem);
+                // 两边都有，选择最新的（考虑删除标记）
+                // 如果本地标记为删除，使用本地版本（保持删除状态）
+                if (localItem.deleted) {
+                    mergedData.push(localItem);
+                } else if (cloudItem.deleted) {
+                    mergedData.push(cloudItem);
+                } else {
+                    // 都没删除，比较日期选择最新的
+                    const localTime = new Date(localItem.date).getTime();
+                    const cloudTime = new Date(cloudItem.date).getTime();
+                    mergedData.push(localTime >= cloudTime ? localItem : cloudItem);
+                }
             } else if (localItem) {
                 // 只有本地有
                 mergedData.push(localItem);
             } else if (cloudItem) {
                 // 只有云端有
-                mergedData.push(cloudItem);
+                // 关键修复：不再自动恢复云端记录
+                // 只有当云端记录未标记为删除时才添加
+                if (!cloudItem.deleted) {
+                    mergedData.push(cloudItem);
+                }
             }
         });
 

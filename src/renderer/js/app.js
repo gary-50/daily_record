@@ -1,15 +1,24 @@
-const CONSTANTS = {
-    CHART_SCROLL_DELAY: 150,
-    TOAST_DURATION: 3000,
-    TOAST_FADE_OUT: 2700,
-    DEFAULT_DATE_RANGE: 30,
-    COUNT_ANIMATION_DURATION: 1000,
-    HEATMAP_DAYS: 364,
-    HEATMAP_TOTAL_CELLS: 371,
-    MAX_INPUT_HEIGHT: 120,
-    SUMMARY_TEXT_LIMIT: 30,
-    SUMMARY_TEXT_LIMIT_DIET: 20
-};
+// ==================== 模块导入 ====================
+import { CONSTANTS, PAGINATION, TOAST_ICONS } from './utils/constants.js';
+import { 
+    debounce, 
+    timeToSeconds, 
+    secondsToTime, 
+    calculatePace, 
+    truncateText, 
+    escapeHtml,
+    setActiveClass 
+} from './utils/helpers.js';
+import { EventManager } from './managers/EventManager.js';
+import { DataCache } from './managers/DataCache.js';
+import { ErrorHandler } from './managers/ErrorHandler.js';
+import { validateExerciseData, validateDietData } from './validators/dataValidators.js';
+
+// ==================== 全局变量和实例 ====================
+
+// 创建全局实例
+const eventManager = new EventManager();
+const statsCache = new DataCache();
 
 let exerciseData = [];
 let filteredData = [];
@@ -311,38 +320,7 @@ async function loadDietData() {
     }
 }
 
-function timeToSeconds(timeStr) {
-    if (!timeStr || timeStr.trim() === '') return 0;
-    
-    timeStr = timeStr.trim();
-    const parts = timeStr.split(':');
-    
-    if (parts.length === 2) {
-        // HH:MM 格式（时间选择器返回的格式）
-        const [hours, minutes] = parts.map(p => parseInt(p) || 0);
-        return hours * 3600 + minutes * 60;
-    } else if (parts.length === 3) {
-        // HH:MM:SS 格式（时间选择器包含秒数）
-        const [hours, minutes, seconds] = parts.map(p => parseInt(p) || 0);
-        return hours * 3600 + minutes * 60 + seconds;
-    }
-    
-    return 0;
-}
-
-function secondsToTime(totalSeconds) {
-    if (!totalSeconds || totalSeconds === 0) return '-';
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-const TOAST_ICONS = {
-    success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>',
-    info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-};
+// timeToSeconds, secondsToTime, TOAST_ICONS 已从模块导入，无需重复定义
 
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
@@ -432,18 +410,7 @@ function showConfirm(message, title = '确认操作') {
     });
 }
 
-function calculatePace(durationSeconds, distanceKm) {
-    if (!durationSeconds || !distanceKm || distanceKm === 0) return '-';
-    const paceSeconds = durationSeconds / distanceKm;
-    const paceMinutes = Math.floor(paceSeconds / 60);
-    const paceSecondsRemainder = Math.floor(paceSeconds % 60);
-    return `${paceMinutes}'${String(paceSecondsRemainder).padStart(2, '0')}"`;
-}
-
-function setActiveClass(selector, activeElement) {
-    document.querySelectorAll(selector).forEach(el => el.classList.remove('active'));
-    if (activeElement) activeElement.classList.add('active');
-}
+// calculatePace, setActiveClass 已从模块导入，无需重复定义
 
 async function submitFormWithFeedback(e, getRecordData, saveMethod, loadMethod, successMsg) {
     e.preventDefault();
@@ -2173,11 +2140,6 @@ async function callAIStreaming(systemPrompt, userMessage, onChunk) {
     }
 }
 
-function truncateText(text, limit) {
-    if (!text) return '-';
-    return text.length > limit ? text.substring(0, limit) + '...' : text;
-}
-
 function getRecentDataSummary() {
     if (exerciseData.length === 0) {
         return '用户暂无运动记录。';
@@ -2646,8 +2608,21 @@ async function loadGoogleConfig() {
     try {
         const result = await window.electronAPI.getGoogleConfig();
         if (result.success && result.config) {
-            if (result.config.autoSyncOnStart !== undefined) {
-                document.getElementById('autoSyncCheckbox').checked = result.config.autoSyncOnStart !== false;
+            // 加载自动同步设置
+            const autoSyncCheckbox = document.getElementById('autoSyncCheckbox');
+            if (autoSyncCheckbox && result.config.autoSyncOnStart !== undefined) {
+                autoSyncCheckbox.checked = result.config.autoSyncOnStart !== false;
+            }
+            
+            // 加载 Google Client ID 和 Secret
+            const clientId = document.getElementById('googleClientId');
+            const clientSecret = document.getElementById('googleClientSecret');
+            
+            if (clientId) {
+                clientId.value = result.config.clientId || '';
+            }
+            if (clientSecret) {
+                clientSecret.value = result.config.clientSecret || '';
             }
         }
     } catch (error) {
@@ -2737,26 +2712,6 @@ async function handleGoogleLogout() {
     }
 }
 
-// 加载 Google 配置
-async function loadGoogleConfig() {
-    try {
-        const result = await window.electronAPI.getGoogleConfig();
-        if (result.success && result.config) {
-            const clientId = document.getElementById('googleClientId');
-            const clientSecret = document.getElementById('googleClientSecret');
-            
-            if (clientId) {
-                clientId.value = result.config.clientId || '';
-            }
-            if (clientSecret) {
-                clientSecret.value = result.config.clientSecret || '';
-            }
-        }
-    } catch (error) {
-        console.error('加载 Google 配置失败:', error);
-    }
-}
-
 // 保存 Google 配置
 async function saveGoogleConfig(event) {
     if (event) event.preventDefault();
@@ -2825,15 +2780,39 @@ async function handleManualSync() {
     }
 }
 
+// 格式化同步时间（统一格式化函数）
+function formatSyncTime(lastSyncTime) {
+    if (!lastSyncTime) {
+        return '从未同步';
+    }
+    try {
+        const date = new Date(lastSyncTime);
+        // 检查日期是否有效
+        if (isNaN(date.getTime())) {
+            return '时间格式错误';
+        }
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+    } catch (error) {
+        console.error('格式化同步时间失败:', error);
+        return '时间格式错误';
+    }
+}
+
 // 查看同步状态
 async function handleSyncStatus() {
     try {
         const result = await window.electronAPI.getSyncStatus();
         
         if (result.success) {
-            const lastSync = result.lastSyncTime 
-                ? new Date(result.lastSyncTime).toLocaleString('zh-CN')
-                : '从未同步';
+            const lastSync = formatSyncTime(result.lastSyncTime);
             const deviceMatch = result.deviceId === result.currentDevice;
             
             const message = `
@@ -2859,10 +2838,12 @@ async function loadSyncStatus() {
     try {
         const result = await window.electronAPI.getSyncStatus();
         
-        if (result.success && result.lastSyncTime) {
+        if (result.success) {
             const lastSyncEl = document.getElementById('lastSyncTime');
-            const syncTime = new Date(result.lastSyncTime).toLocaleString('zh-CN');
-            lastSyncEl.textContent = `最后同步：${syncTime}`;
+            if (lastSyncEl) {
+                const syncTime = formatSyncTime(result.lastSyncTime);
+                lastSyncEl.textContent = `最后同步：${syncTime}`;
+            }
         }
     } catch (error) {
         console.error('加载同步状态失败:', error);
@@ -3093,5 +3074,21 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProxyConfig();
     bindProxyEvents();
 });
+
+// ==================== 将需要的函数暴露到全局作用域（供HTML inline事件使用）====================
+// 因为ES6模块是私有作用域，HTML中的onclick等inline事件无法访问模块内的函数
+// 所以需要将这些函数显式地暴露到window对象上
+
+window.toggleExerciseRow = toggleExerciseRow;
+window.editRecord = editRecord;
+window.deleteRecord = deleteRecord;
+window.toggleDietCard = toggleDietCard;
+window.editDietRecord = editDietRecord;
+window.deleteDietRecord = deleteDietRecord;
+window.switchPage = switchPage;
+window.updateCharts = updateCharts;
+window.handleSort = handleSort;
+window.showToast = showToast;
+window.retryLastAIMessage = retryLastAIMessage;
 
 

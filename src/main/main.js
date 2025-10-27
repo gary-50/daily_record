@@ -19,10 +19,12 @@ let DIET_DATA_FILE = path.join(app.getPath('userData'), 'diet-data.json');
 let googleAuth = null;
 let driveSync = null;
 
-function readJSONFile(filePath, defaultValue = []) {
+// 异步读取JSON文件
+async function readJSONFile(filePath, defaultValue = []) {
     try {
         if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            const content = await fs.promises.readFile(filePath, 'utf8');
+            return JSON.parse(content);
         }
         return defaultValue;
     } catch (error) {
@@ -31,13 +33,14 @@ function readJSONFile(filePath, defaultValue = []) {
     }
 }
 
-function writeJSONFile(filePath, data) {
+// 异步写入JSON文件
+async function writeJSONFile(filePath, data) {
     try {
         const dir = path.dirname(filePath);
         if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
+            await fs.promises.mkdir(dir, { recursive: true });
         }
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+        await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2));
         return true;
     } catch (error) {
         console.error(`写入文件失败 ${filePath}:`, error);
@@ -50,23 +53,24 @@ function setDataDirectory(dir) {
     DIET_DATA_FILE = path.join(dir, 'diet-data.json');
 }
 
-function loadConfig() {
-    const config = readJSONFile(CONFIG_FILE, {});
+async function loadConfig() {
+    const config = await readJSONFile(CONFIG_FILE, {});
     if (config.dataDirectory && fs.existsSync(config.dataDirectory)) {
         setDataDirectory(config.dataDirectory);
     }
+    return config;
 }
 
-function saveConfig(config) {
-    return writeJSONFile(CONFIG_FILE, config);
+async function saveConfig(config) {
+    return await writeJSONFile(CONFIG_FILE, config);
 }
 
-function ensureDataFile() {
+async function ensureDataFile() {
     if (!fs.existsSync(DATA_FILE)) {
-        writeJSONFile(DATA_FILE, []);
+        await writeJSONFile(DATA_FILE, []);
     }
     if (!fs.existsSync(DIET_DATA_FILE)) {
-        writeJSONFile(DIET_DATA_FILE, []);
+        await writeJSONFile(DIET_DATA_FILE, []);
     }
 }
 
@@ -103,11 +107,11 @@ function createWindow() {
 
 // 应用准备就绪
 app.whenReady().then(async () => {
-    loadConfig();  // 先加载配置
-    ensureDataFile();
+    const config = await loadConfig();  // 先加载配置
+    await ensureDataFile();
     
     // 读取配置文件（用于代理和Google Auth）
-    const config = readJSONFile(CONFIG_FILE, {});
+    // const config = readJSONFile(CONFIG_FILE, {}); // 已通过loadConfig加载
     
     // 检查并设置代理
     if (config.proxy && config.proxy.enabled && config.proxy.url) {
@@ -142,8 +146,8 @@ app.whenReady().then(async () => {
             (async () => {
                 try {
                     await googleAuth.ensureValidToken();
-                    const exerciseData = readJSONFile(DATA_FILE, []);
-                    const dietData = readJSONFile(DIET_DATA_FILE, []);
+                    const exerciseData = await readJSONFile(DATA_FILE, []);
+                    const dietData = await readJSONFile(DIET_DATA_FILE, []);
                     
                     await driveSync.performFullSync(
                         exerciseData,
@@ -207,7 +211,7 @@ async function autoSyncIfEnabled(dataType) {
         try {
             await googleAuth.ensureValidToken();
             
-            const data = readJSONFile(
+            const data = await readJSONFile(
                 dataType === 'exercise' ? DATA_FILE : DIET_DATA_FILE,
                 []
             );
@@ -254,12 +258,12 @@ async function autoSyncIfEnabled(dataType) {
 
 async function handleSaveRecord(filePath, record, errorPrefix, dataType) {
     try {
-        const records = readJSONFile(filePath, []);
+        const records = await readJSONFile(filePath, []);
         record.id = Date.now();
         records.push(record);
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        if (writeJSONFile(filePath, records)) {
+        if (await writeJSONFile(filePath, records)) {
             // 保存成功后立即触发自动同步（后台异步，不阻塞）
             autoSyncIfEnabled(dataType);
             return { success: true, record };
@@ -273,9 +277,18 @@ async function handleSaveRecord(filePath, record, errorPrefix, dataType) {
 
 async function handleDeleteRecord(filePath, id, errorPrefix, dataType) {
     try {
-        const records = readJSONFile(filePath, []).filter(record => record.id !== id);
+        const records = await readJSONFile(filePath, []);
+        const recordIndex = records.findIndex(record => record.id === id);
         
-        if (writeJSONFile(filePath, records)) {
+        if (recordIndex === -1) {
+            throw new Error('记录不存在');
+        }
+        
+        // 使用软删除：标记为已删除，而不是物理删除
+        records[recordIndex].deleted = true;
+        records[recordIndex].deletedAt = new Date().toISOString();
+        
+        if (await writeJSONFile(filePath, records)) {
             // 删除成功后立即触发自动同步（后台异步，不阻塞）
             autoSyncIfEnabled(dataType);
             return { success: true };
@@ -288,20 +301,22 @@ async function handleDeleteRecord(filePath, id, errorPrefix, dataType) {
 }
 
 ipcMain.handle('get-records', async () => {
-    return readJSONFile(DATA_FILE, []);
+    const records = await readJSONFile(DATA_FILE, []);
+    // 过滤掉已删除的记录
+    return records.filter(record => !record.deleted);
 });
 
 ipcMain.handle('save-record', async (event, record) => {
-    return handleSaveRecord(DATA_FILE, record, '保存数据失败', 'exercise');
+    return await handleSaveRecord(DATA_FILE, record, '保存数据失败', 'exercise');
 });
 
 ipcMain.handle('delete-record', async (event, id) => {
-    return handleDeleteRecord(DATA_FILE, id, '删除数据失败', 'exercise');
+    return await handleDeleteRecord(DATA_FILE, id, '删除数据失败', 'exercise');
 });
 
 ipcMain.handle('update-record', async (event, updatedRecord) => {
     try {
-        const records = readJSONFile(DATA_FILE, []);
+        const records = await readJSONFile(DATA_FILE, []);
         const index = records.findIndex(record => record.id === updatedRecord.id);
         
         if (index === -1) {
@@ -311,7 +326,7 @@ ipcMain.handle('update-record', async (event, updatedRecord) => {
         records[index] = updatedRecord;
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
         
-        if (writeJSONFile(DATA_FILE, records)) {
+        if (await writeJSONFile(DATA_FILE, records)) {
             autoSyncIfEnabled('exercise');
             return { success: true, record: updatedRecord };
         }
@@ -346,7 +361,7 @@ ipcMain.handle('set-data-path', async (event, newDirectory) => {
     const oldDietFile = DIET_DATA_FILE;
     try {
         if (!fs.existsSync(newDirectory)) {
-            fs.mkdirSync(newDirectory, { recursive: true });
+            await fs.promises.mkdir(newDirectory, { recursive: true });
         }
 
         const newExerciseFile = path.join(newDirectory, 'exercise-data.json');
@@ -354,23 +369,23 @@ ipcMain.handle('set-data-path', async (event, newDirectory) => {
 
         if (!fs.existsSync(newExerciseFile)) {
             if (fs.existsSync(DATA_FILE)) {
-                fs.copyFileSync(DATA_FILE, newExerciseFile);
+                await fs.promises.copyFile(DATA_FILE, newExerciseFile);
             } else {
-                writeJSONFile(newExerciseFile, []);
+                await writeJSONFile(newExerciseFile, []);
             }
         }
 
         if (!fs.existsSync(newDietFile)) {
             if (fs.existsSync(DIET_DATA_FILE)) {
-                fs.copyFileSync(DIET_DATA_FILE, newDietFile);
+                await fs.promises.copyFile(DIET_DATA_FILE, newDietFile);
             } else {
-                writeJSONFile(newDietFile, []);
+                await writeJSONFile(newDietFile, []);
             }
         }
 
         setDataDirectory(newDirectory);
 
-        if (saveConfig({ dataDirectory: newDirectory })) {
+        if (await saveConfig({ dataDirectory: newDirectory })) {
             return { 
                 success: true, 
                 newPath: newDirectory,
@@ -392,7 +407,7 @@ ipcMain.handle('set-data-path', async (event, newDirectory) => {
 
 // IPC 处理器 - 获取当前配置
 ipcMain.handle('get-config', async () => {
-    const config = readJSONFile(CONFIG_FILE, {});
+    const config = await readJSONFile(CONFIG_FILE, {});
     const isDefaultPath = !config.dataDirectory;
     const dataDirectory = config.dataDirectory || app.getPath('userData');
     
@@ -407,7 +422,7 @@ ipcMain.handle('get-config', async () => {
 // IPC 处理器 - 获取AI配置
 ipcMain.handle('get-ai-config', async () => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         return {
             success: true,
             config: config.aiConfig || {
@@ -425,10 +440,10 @@ ipcMain.handle('get-ai-config', async () => {
 // IPC 处理器 - 保存AI配置
 ipcMain.handle('save-ai-config', async (event, aiConfig) => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         config.aiConfig = aiConfig;
         
-        if (saveConfig(config)) {
+        if (await saveConfig(config)) {
             return { success: true };
         }
         throw new Error('保存配置失败');
@@ -440,23 +455,25 @@ ipcMain.handle('save-ai-config', async (event, aiConfig) => {
 
 // IPC 处理器 - 获取饮食记录
 ipcMain.handle('get-diet-records', async () => {
-    return readJSONFile(DIET_DATA_FILE, []);
+    const records = await readJSONFile(DIET_DATA_FILE, []);
+    // 过滤掉已删除的记录
+    return records.filter(record => !record.deleted);
 });
 
 // IPC 处理器 - 保存饮食记录
 ipcMain.handle('save-diet-record', async (event, record) => {
-    return handleSaveRecord(DIET_DATA_FILE, record, '保存饮食数据失败', 'diet');
+    return await handleSaveRecord(DIET_DATA_FILE, record, '保存饮食数据失败', 'diet');
 });
 
 // IPC 处理器 - 删除饮食记录
 ipcMain.handle('delete-diet-record', async (event, id) => {
-    return handleDeleteRecord(DIET_DATA_FILE, id, '删除饮食数据失败', 'diet');
+    return await handleDeleteRecord(DIET_DATA_FILE, id, '删除饮食数据失败', 'diet');
 });
 
 // IPC 处理器 - 更新饮食记录
 ipcMain.handle('update-diet-record', async (event, updatedRecord) => {
     try {
-        const records = readJSONFile(DIET_DATA_FILE, []);
+        const records = await readJSONFile(DIET_DATA_FILE, []);
         const index = records.findIndex(record => record.id === updatedRecord.id);
         
         if (index === -1) {
@@ -466,7 +483,7 @@ ipcMain.handle('update-diet-record', async (event, updatedRecord) => {
         records[index] = updatedRecord;
         records.sort((a, b) => new Date(b.date) - new Date(a.date));
         
-        if (writeJSONFile(DIET_DATA_FILE, records)) {
+        if (await writeJSONFile(DIET_DATA_FILE, records)) {
             autoSyncIfEnabled('diet');
             return { success: true, record: updatedRecord };
         }
@@ -504,10 +521,10 @@ function initializeGoogleAuth(config) {
 // IPC 处理器 - 保存 Google 配置
 ipcMain.handle('save-google-config', async (event, config) => {
     try {
-        const fullConfig = readJSONFile(CONFIG_FILE, {});
+        const fullConfig = await readJSONFile(CONFIG_FILE, {});
         fullConfig.googleConfig = config;
         
-        if (saveConfig(fullConfig)) {
+        if (await saveConfig(fullConfig)) {
             initializeGoogleAuth(config);
             return { success: true };
         }
@@ -521,7 +538,7 @@ ipcMain.handle('save-google-config', async (event, config) => {
 // IPC 处理器 - 获取 Google 配置
 ipcMain.handle('get-google-config', async () => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         return {
             success: true,
             config: config.googleConfig || {
@@ -539,7 +556,7 @@ ipcMain.handle('get-google-config', async () => {
 // IPC 处理器 - Google 登录
 ipcMain.handle('google-login', async () => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         
         if (!googleAuth) {
             // 检查配置文件中的凭据（打包后的应用只从配置文件读取）
@@ -581,7 +598,7 @@ ipcMain.handle('google-login', async () => {
             config.googleConfig.tokens = result.tokens;
             config.googleConfig.userInfo = result.userInfo;
             config.googleConfig.enabled = true;
-            saveConfig(config);
+            await saveConfig(config);
             
             // 初始化同步
             driveSync = new DriveSync(googleAuth.getClient());
@@ -608,12 +625,12 @@ ipcMain.handle('google-logout', async () => {
         
         driveSync = null;
         
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         if (config.googleConfig) {
             delete config.googleConfig.tokens;
             delete config.googleConfig.userInfo;
             config.googleConfig.enabled = false;
-            saveConfig(config);
+            await saveConfig(config);
         }
         
         return { success: true };
@@ -626,7 +643,7 @@ ipcMain.handle('google-logout', async () => {
 // IPC 处理器 - 检查 Google 登录状态
 ipcMain.handle('check-google-auth', async () => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         const googleConfig = config.googleConfig;
         
         if (!googleConfig || !googleConfig.enabled || !googleConfig.tokens) {
@@ -650,7 +667,7 @@ ipcMain.handle('check-google-auth', async () => {
             try {
                 const newTokens = await googleAuth.refreshAccessToken();
                 config.googleConfig.tokens = newTokens;
-                saveConfig(config);
+                await saveConfig(config);
             } catch (error) {
                 // Token 刷新失败，需要重新登录
                 return { success: true, isAuthenticated: false, needReauth: true };
@@ -679,8 +696,8 @@ ipcMain.handle('sync-to-cloud', async () => {
         await googleAuth.ensureValidToken();
         
         // 读取本地数据
-        const exerciseData = readJSONFile(DATA_FILE, []);
-        const dietData = readJSONFile(DIET_DATA_FILE, []);
+        const exerciseData = await readJSONFile(DATA_FILE, []);
+        const dietData = await readJSONFile(DIET_DATA_FILE, []);
         
         // 执行同步
         const result = await driveSync.performFullSync(
@@ -721,14 +738,14 @@ ipcMain.handle('auto-sync', async (event, dataType) => {
             return { success: false, error: '同步未启用' };
         }
         
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         if (!config.googleConfig || !config.googleConfig.autoSync) {
             return { success: false, error: '自动同步未启用' };
         }
         
         await googleAuth.ensureValidToken();
         
-        const data = readJSONFile(
+        const data = await readJSONFile(
             dataType === 'exercise' ? DATA_FILE : DIET_DATA_FILE,
             []
         );
@@ -750,7 +767,7 @@ ipcMain.handle('auto-sync', async (event, dataType) => {
 // IPC 处理器 - 获取代理配置
 ipcMain.handle('get-proxy-config', async () => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         return {
             success: true,
             config: config.proxy || {
@@ -767,10 +784,10 @@ ipcMain.handle('get-proxy-config', async () => {
 // IPC 处理器 - 保存代理配置
 ipcMain.handle('save-proxy-config', async (event, proxyConfig) => {
     try {
-        const config = readJSONFile(CONFIG_FILE, {});
+        const config = await readJSONFile(CONFIG_FILE, {});
         config.proxy = proxyConfig;
         
-        if (saveConfig(config)) {
+        if (await saveConfig(config)) {
             // 立即应用代理设置（需要确保在app ready之后）
             if (app.isReady()) {
                 try {
